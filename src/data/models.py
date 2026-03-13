@@ -18,12 +18,59 @@ RECIPE_FIELDS = [
     "color_chrome_fx_blue",
     "grain_effect_roughness",
     "grain_effect_size",
+    # New FujiFilm EXIF fields
+    "version",
+    "internal_serial_number",
+    "af_mode",
+    "focus_pixel",
+    "af_s_priority",
+    "af_c_priority",
+    "focus_mode_2",
+    "pre_af",
+    "af_area_mode",
+    "af_area_point_size",
+    "af_area_zone_size",
+    "af_c_setting",
+    "af_c_tracking_sensitivity",
+    "af_c_speed_tracking_sensitivity",
+    "af_c_zone_area_switching",
+    "slow_sync",
+    "exposure_count",
+    "crop_mode",
+    "auto_bracketing",
+    "sequence_number",
+    "drive_speed",
+    "blur_warning",
+    "focus_warning",
+    "exposure_warning",
+    "auto_dynamic_range",
+    "d_range_priority",
+    "d_range_priority_auto",
+    "min_focal_length",
+    "max_focal_length",
+    "max_aperture_at_min_focal",
+    "max_aperture_at_max_focal",
+    "image_generation",
+    "image_count",
+    "flicker_reduction",
+    "fuji_model",
+    "fuji_model_2",
+    "faces_detected",
+    "num_face_elements",
+    "face_element_positions",
+    "face_element_selected",
+    "face_element_types",
+    "face_positions",
+    "scene_recognition",
+    "bw_adjustment",
+    "bw_magenta_green",
 ]
 
 
-class FujifilmRecipe(models.Model):
+class FujifilmExif(models.Model):
     name = models.CharField(max_length=255, blank=True, default="")
 
+    # Creative / recipe settings
     film_simulation = models.CharField(max_length=100, blank=True, default="")
     dynamic_range = models.CharField(max_length=100, blank=True, default="")
     dynamic_range_setting = models.CharField(max_length=100, blank=True, default="")
@@ -41,11 +88,70 @@ class FujifilmRecipe(models.Model):
     color_chrome_fx_blue = models.CharField(max_length=100, blank=True, default="")
     grain_effect_roughness = models.CharField(max_length=100, blank=True, default="")
     grain_effect_size = models.CharField(max_length=100, blank=True, default="")
+    bw_adjustment = models.CharField(max_length=50, blank=True, default="")
+    bw_magenta_green = models.CharField(max_length=50, blank=True, default="")
+    d_range_priority = models.CharField(max_length=100, blank=True, default="")
+    d_range_priority_auto = models.CharField(max_length=100, blank=True, default="")
+    auto_dynamic_range = models.CharField(max_length=50, blank=True, default="")
+
+    # Autofocus settings
+    af_mode = models.CharField(max_length=100, blank=True, default="")
+    focus_pixel = models.CharField(max_length=100, blank=True, default="")
+    af_s_priority = models.CharField(max_length=100, blank=True, default="")
+    af_c_priority = models.CharField(max_length=100, blank=True, default="")
+    focus_mode_2 = models.CharField(max_length=100, blank=True, default="")
+    pre_af = models.CharField(max_length=50, blank=True, default="")
+    af_area_mode = models.CharField(max_length=100, blank=True, default="")
+    af_area_point_size = models.CharField(max_length=50, blank=True, default="")
+    af_area_zone_size = models.CharField(max_length=50, blank=True, default="")
+    af_c_setting = models.CharField(max_length=100, blank=True, default="")
+    af_c_tracking_sensitivity = models.CharField(max_length=50, blank=True, default="")
+    af_c_speed_tracking_sensitivity = models.CharField(max_length=50, blank=True, default="")
+    af_c_zone_area_switching = models.CharField(max_length=100, blank=True, default="")
+
+    # Drive / flash / stabilization
+    slow_sync = models.CharField(max_length=50, blank=True, default="")
+    auto_bracketing = models.CharField(max_length=100, blank=True, default="")
+    drive_speed = models.CharField(max_length=50, blank=True, default="")
+    crop_mode = models.CharField(max_length=50, blank=True, default="")
+    flicker_reduction = models.CharField(max_length=100, blank=True, default="")
+
+    # Shot metadata
+    sequence_number = models.CharField(max_length=50, blank=True, default="")
+    exposure_count = models.CharField(max_length=50, blank=True, default="")
+    image_generation = models.CharField(max_length=100, blank=True, default="")
+    image_count = models.CharField(max_length=50, blank=True, default="")
+    scene_recognition = models.CharField(max_length=100, blank=True, default="")
+
+    # Warnings / status
+    blur_warning = models.CharField(max_length=50, blank=True, default="")
+    focus_warning = models.CharField(max_length=50, blank=True, default="")
+    exposure_warning = models.CharField(max_length=50, blank=True, default="")
+
+    # Lens info
+    min_focal_length = models.CharField(max_length=50, blank=True, default="")
+    max_focal_length = models.CharField(max_length=50, blank=True, default="")
+    max_aperture_at_min_focal = models.CharField(max_length=50, blank=True, default="")
+    max_aperture_at_max_focal = models.CharField(max_length=50, blank=True, default="")
+
+    # Camera hardware info
+    version = models.CharField(max_length=50, blank=True, default="")
+    internal_serial_number = models.CharField(max_length=100, blank=True, default="")
+    fuji_model = models.CharField(max_length=100, blank=True, default="")
+    fuji_model_2 = models.CharField(max_length=100, blank=True, default="")
+
+    # Face detection
+    faces_detected = models.CharField(max_length=50, blank=True, default="")
+    num_face_elements = models.CharField(max_length=50, blank=True, default="")
+    face_element_positions = models.CharField(max_length=500, blank=True, default="")
+    face_element_selected = models.CharField(max_length=500, blank=True, default="")
+    face_element_types = models.CharField(max_length=200, blank=True, default="")
+    face_positions = models.CharField(max_length=500, blank=True, default="")
 
     def __str__(self):
         if self.name:
             return self.name
-        return self.film_simulation or "Unknown recipe"
+        return self.film_simulation or "Unknown"
 
 
 class Image(models.Model):
@@ -77,7 +183,7 @@ class Image(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     recipe = models.ForeignKey(
-        FujifilmRecipe,
+        FujifilmExif,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

@@ -5,7 +5,7 @@ from src.domain.operations import NoFilmSimulationError, process_image
 
 
 class Command(BaseCommand):
-    help = "Reprocess all images linked to a FujifilmRecipe with white_balance='Kelvin'."
+    help = "Reprocess all images linked to a FujifilmExif with white_balance='Kelvin'."
 
     def handle(self, *args, **options):
         images = Image.objects.filter(recipe__white_balance="Kelvin").select_related("recipe")

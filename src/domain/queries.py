@@ -7,10 +7,26 @@ from pathlib import Path
 from src.domain.dataclasses import ImageExifData
 
 EXIFTOOL_FIELD_MAP = {
+    # Standard fields (non-FujiFilm group)
     "Make": "camera_make",
     "Camera Model Name": "camera_model",
-    "Film Mode": "film_simulation",
+    "ISO": "iso",
+    "Exposure Compensation": "exposure_compensation",
+    "Date/Time Original": "date_taken",
+
+    # Shooting settings (FujiFilm group, stored on Image)
     "Quality": "quality",
+    "Fuji Flash Mode": "flash_mode",
+    "Flash Exposure Comp": "flash_exposure_comp",
+    "Focus Mode": "focus_mode",
+    "Shutter Type": "shutter_type",
+    "Lens Modulation Optimizer": "lens_modulation_optimizer",
+    "Picture Mode": "picture_mode",
+    "Drive Mode": "drive_mode",
+    "Image Stabilization": "image_stabilization",
+
+    # Creative / recipe settings (FujiFilm group, stored on FujifilmExif)
+    "Film Mode": "film_simulation",
     "Dynamic Range": "dynamic_range",
     "Dynamic Range Setting": "dynamic_range_setting",
     "Development Dynamic Range": "development_dynamic_range",
@@ -27,17 +43,65 @@ EXIFTOOL_FIELD_MAP = {
     "Color Chrome FX Blue": "color_chrome_fx_blue",
     "Grain Effect Roughness": "grain_effect_roughness",
     "Grain Effect Size": "grain_effect_size",
-    "Fuji Flash Mode": "flash_mode",
-    "Flash Exposure Comp": "flash_exposure_comp",
-    "Focus Mode": "focus_mode",
-    "Shutter Type": "shutter_type",
-    "Lens Modulation Optimizer": "lens_modulation_optimizer",
-    "Picture Mode": "picture_mode",
-    "Drive Mode": "drive_mode",
-    "Image Stabilization": "image_stabilization",
-    "ISO": "iso",
-    "Exposure Compensation": "exposure_compensation",
-    "Date/Time Original": "date_taken",
+    "BW Adjustment": "bw_adjustment",
+    "BW Magenta Green": "bw_magenta_green",
+    "D Range Priority": "d_range_priority",
+    "D Range Priority Auto": "d_range_priority_auto",
+    "Auto Dynamic Range": "auto_dynamic_range",
+
+    # Autofocus settings (FujiFilm group, stored on FujifilmExif)
+    "AF Mode": "af_mode",
+    "Focus Pixel": "focus_pixel",
+    "AF-S Priority": "af_s_priority",
+    "AF-C Priority": "af_c_priority",
+    "Focus Mode 2": "focus_mode_2",
+    "Pre AF": "pre_af",
+    "AF Area Mode": "af_area_mode",
+    "AF Area Point Size": "af_area_point_size",
+    "AF Area Zone Size": "af_area_zone_size",
+    "AF-C Setting": "af_c_setting",
+    "AF-C Tracking Sensitivity": "af_c_tracking_sensitivity",
+    "AF-C Speed Tracking Sensitivity": "af_c_speed_tracking_sensitivity",
+    "AF-C Zone Area Switching": "af_c_zone_area_switching",
+
+    # Drive / flash / stabilization (FujiFilm group, stored on FujifilmExif)
+    "Slow Sync": "slow_sync",
+    "Auto Bracketing": "auto_bracketing",
+    "Drive Speed": "drive_speed",
+    "Crop Mode": "crop_mode",
+    "Flicker Reduction": "flicker_reduction",
+
+    # Shot metadata (FujiFilm group, stored on FujifilmExif)
+    "Sequence Number": "sequence_number",
+    "Exposure Count": "exposure_count",
+    "Image Generation": "image_generation",
+    "Image Count": "image_count",
+    "Scene Recognition": "scene_recognition",
+
+    # Warnings / status (FujiFilm group, stored on FujifilmExif)
+    "Blur Warning": "blur_warning",
+    "Focus Warning": "focus_warning",
+    "Exposure Warning": "exposure_warning",
+
+    # Lens info (FujiFilm group, stored on FujifilmExif)
+    "Min Focal Length": "min_focal_length",
+    "Max Focal Length": "max_focal_length",
+    "Max Aperture At Min Focal": "max_aperture_at_min_focal",
+    "Max Aperture At Max Focal": "max_aperture_at_max_focal",
+
+    # Camera hardware info (FujiFilm group, stored on FujifilmExif)
+    "Version": "version",
+    "Internal Serial Number": "internal_serial_number",
+    "Fuji Model": "fuji_model",
+    "Fuji Model 2": "fuji_model_2",
+
+    # Face detection (FujiFilm group, stored on FujifilmExif)
+    "Faces Detected": "faces_detected",
+    "Num Face Elements": "num_face_elements",
+    "Face Element Positions": "face_element_positions",
+    "Face Element Selected": "face_element_selected",
+    "Face Element Types": "face_element_types",
+    "Face Positions": "face_positions",
 }
 
 _EXIF_DATE_RE = re.compile(

@@ -1,7 +1,7 @@
 import dataclasses
 import os
 
-from src.data.models import FujifilmRecipe, Image, RECIPE_FIELDS
+from src.data.models import FujifilmExif, Image, RECIPE_FIELDS
 from src.domain import events
 from src.domain.queries import parse_exif_date, read_image_exif
 
@@ -16,11 +16,11 @@ class NoFilmSimulationError(Exception):
 
 
 def process_image(image_path: str) -> Image:
-    """Read EXIF recipe data from *image_path* and persist it to the database.
+    """Read EXIF data from *image_path* and persist it to the database.
 
     If a record for the same filepath already exists it is updated in-place.
-    A FujifilmRecipe is looked up or created for the image's recipe field combination
-    and linked via the recipe FK.
+    A FujifilmExif record is looked up or created for the image's EXIF field
+    combination and linked via the recipe FK.
 
     Raises:
         NoFilmSimulationError: If the image has no film simulation EXIF data.
@@ -38,16 +38,16 @@ def process_image(image_path: str) -> Image:
     exif_fields.pop("date_taken")
     recipe_fields = {field: exif_fields.pop(field) for field in RECIPE_FIELDS}
 
-    fujifilm_recipe, _ = FujifilmRecipe.objects.get_or_create(**recipe_fields)
+    fujifilm_exif, _ = FujifilmExif.objects.get_or_create(**recipe_fields)
     image, created = Image.objects.update_or_create(
         filepath=image_path,
-        defaults={"filename": filename, "date_taken": date_taken, "recipe": fujifilm_recipe, **exif_fields},
+        defaults={"filename": filename, "date_taken": date_taken, "recipe": fujifilm_exif, **exif_fields},
     )
 
     event_params = {
         "recipe_id": image.pk,
         "filename": filename,
-        "film_simulation": fujifilm_recipe.film_simulation,
+        "film_simulation": fujifilm_exif.film_simulation,
         "date_taken": image.date_taken.isoformat() if image.date_taken else "",
     }
     events.publish_event(

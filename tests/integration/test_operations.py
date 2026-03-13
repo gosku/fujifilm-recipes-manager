@@ -19,6 +19,8 @@ class TestProcessImagePersistence:
         assert image.pk is not None
         assert image.filename == "XS107114.JPG"
         assert image.filepath == FIXTURE_IMAGE
+
+        # Standard image fields
         assert image.camera_make == "FUJIFILM"
         assert image.camera_model == "X-S10"
         assert image.quality == "FINE"
@@ -34,17 +36,71 @@ class TestProcessImagePersistence:
         assert image.date_taken == datetime(2025, 12, 31, 12, 23, 57, tzinfo=timezone(timedelta(hours=11)))
 
         assert image.recipe is not None
-        assert image.recipe.film_simulation == "Classic Negative"
-        assert image.recipe.dynamic_range == "Standard"
-        assert image.recipe.dynamic_range_setting == "Manual"
-        assert image.recipe.development_dynamic_range == "400"
-        assert image.recipe.white_balance == "Auto"
-        assert image.recipe.white_balance_fine_tune == "Red +3, Blue -5"
-        assert image.recipe.sharpness == "-1 (medium soft)"
-        assert image.recipe.color_chrome_effect == "Off"
-        assert image.recipe.color_chrome_fx_blue == "Strong"
-        assert image.recipe.grain_effect_roughness == "Off"
-        assert image.recipe.grain_effect_size == "Off"
+        exif = image.recipe
+
+        # Creative / recipe fields
+        assert exif.film_simulation == "Classic Negative"
+        assert exif.dynamic_range == "Standard"
+        assert exif.dynamic_range_setting == "Manual"
+        assert exif.development_dynamic_range == "400"
+        assert exif.white_balance == "Auto"
+        assert exif.white_balance_fine_tune == "Red +3, Blue -5"
+        assert exif.sharpness == "-1 (medium soft)"
+        assert exif.noise_reduction == "-4 (weakest)"
+        assert exif.clarity == "0"
+        assert exif.color_chrome_effect == "Off"
+        assert exif.color_chrome_fx_blue == "Strong"
+        assert exif.grain_effect_roughness == "Off"
+        assert exif.grain_effect_size == "Off"
+
+        # Autofocus fields
+        assert exif.af_mode == "Zone"
+        assert exif.focus_pixel == "2249 1209"
+        assert exif.af_s_priority == "Focus"
+        assert exif.af_c_priority == "Release"
+        assert exif.focus_mode_2 == "AF-S"
+        assert exif.pre_af == "Off"
+        assert exif.af_area_mode == "Zone"
+        assert exif.af_area_point_size == "n/a"
+        assert exif.af_area_zone_size == "3 x 3"
+        assert exif.af_c_setting == "Set 1 (multi-purpose)"
+        assert exif.af_c_tracking_sensitivity == "2"
+        assert exif.af_c_speed_tracking_sensitivity == "0"
+        assert exif.af_c_zone_area_switching == "Auto"
+
+        # Drive / misc fields
+        assert exif.slow_sync == "Off"
+        assert exif.auto_bracketing == "Off"
+        assert exif.drive_speed == "n/a"
+        assert exif.crop_mode == "n/a"
+        assert exif.flicker_reduction == "Off (0x0002)"
+
+        # Shot metadata fields
+        assert exif.sequence_number == "0"
+        assert exif.exposure_count == "1"
+        assert exif.image_generation == "Original Image"
+        assert exif.image_count == "18069"
+
+        # Warning fields
+        assert exif.blur_warning == "None"
+        assert exif.focus_warning == "Good"
+        assert exif.exposure_warning == "Good"
+
+        # Lens info fields
+        assert exif.min_focal_length == "35"
+        assert exif.max_focal_length == "35"
+        assert exif.max_aperture_at_min_focal == "2"
+        assert exif.max_aperture_at_max_focal == "2"
+
+        # Camera hardware fields
+        assert exif.version == "0130"
+        assert exif.internal_serial_number == "FF02B6275695     Y56201 2020:12:02 C6B310316B40"
+        assert exif.fuji_model == "X-S10_0100"
+        assert exif.fuji_model_2 == "X-S10_0100"
+
+        # Face detection fields
+        assert exif.faces_detected == "0"
+        assert exif.num_face_elements == "0"
 
         # Assert event was logged
         created_events = [e for e in captured_logs if e.get("event_type") == events.RECIPE_IMAGE_CREATED]
