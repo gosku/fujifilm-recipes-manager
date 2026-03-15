@@ -9,7 +9,7 @@ from src.domain import events
 from src.domain.dataclasses import ImageExifData
 from src.domain.operations import NoFilmSimulationError, process_image
 
-FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "images"
+FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "fixtures" / "images"
 FIXTURE_IMAGE = str(FIXTURES_DIR / "XS107114.JPG")
 
 
