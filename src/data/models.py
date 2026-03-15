@@ -222,5 +222,16 @@ class Image(models.Model):
         related_name="images",
     )
 
+    is_favorite = models.BooleanField(default=False)
+    in_album = models.BooleanField(default=False)
+
+    def mark_as_favorite(self):
+        self.is_favorite = True
+        self.save()
+
+    def mark_as_in_album(self):
+        self.in_album = True
+        self.save()
+
     def __str__(self):
         return self.filename
