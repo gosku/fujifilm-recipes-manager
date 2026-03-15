@@ -6,6 +6,7 @@ from src.domain import events
 from src.domain.queries import (
     AmbiguousImageMatch,
     ImageNotFound,
+    collect_image_paths,
     exif_to_recipe,
     find_image_for_path,
     parse_exif_date,
@@ -99,6 +100,39 @@ def process_image(image_path: str) -> Image:
         params=event_params,
     )
     return image
+
+
+def process_images_in_folder(folder: str) -> tuple[int, list[str]]:
+    """Process all JPG images in *folder*, skipping those without Fujifilm metadata.
+
+    Returns:
+        A tuple of (total_found, skipped_paths).
+    """
+    paths = collect_image_paths(folder)
+    skipped = []
+    for path in paths:
+        try:
+            process_image(path)
+        except NoFilmSimulationError:
+            skipped.append(path)
+    return len(paths), skipped
+
+
+def reprocess_kelvin_images() -> tuple[int, list[str]]:
+    """Reprocess all images whose white balance EXIF value is Kelvin.
+
+    Returns:
+        A tuple of (total_found, skipped_paths).
+    """
+    images = Image.objects.with_kelvin_white_balance().select_related("fujifilm_exif")
+    paths = [image.filepath for image in images]
+    skipped = []
+    for path in paths:
+        try:
+            process_image(path)
+        except NoFilmSimulationError:
+            skipped.append(path)
+    return len(paths), skipped
 
 
 def mark_image_as_favorite(image_path: str) -> Image:

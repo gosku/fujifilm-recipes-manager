@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from src.domain.operations import NoFilmSimulationError, process_image
-from src.domain.queries import collect_image_paths
+from src.domain.operations import process_images_in_folder
 
 
 class Command(BaseCommand):
@@ -14,14 +13,9 @@ class Command(BaseCommand):
         folder = options["folder"]
         self.stdout.write(f"Scanning {folder} for JPG files…")
 
-        paths = collect_image_paths(folder)
-        total = len(paths)
-        self.stdout.write(f"Found {total} images. Processing…")
+        total, skipped = process_images_in_folder(folder)
 
-        for path in paths:
-            try:
-                process_image(path)
-            except NoFilmSimulationError:
-                self.stderr.write(f"Skipped {path} (no film simulation)")
+        for path in skipped:
+            self.stderr.write(f"Skipped {path} (no film simulation)")
 
         self.stdout.write(self.style.SUCCESS(f"Successfully processed {total} images."))
