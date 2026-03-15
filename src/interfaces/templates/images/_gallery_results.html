@@ -1,0 +1,42 @@
+<div class="image-grid">
+  {% for image in page_obj %}
+    <article class="image-card">
+      <img class="image-thumbnail" src="{% url 'image-file' image.id %}?width=600" alt="{{ image.filename }}" loading="lazy">
+      <span class="image-filename">{{ image.filename }}</span>
+      <span class="image-filepath">{{ image.filepath }}</span>
+      {% if image.is_favorite %}
+        <span class="image-favorite">Favorite</span>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="no-results">No images match the selected filters.</p>
+  {% endfor %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="Image pagination">
+    {% if page_obj.has_previous %}
+      <button class="pagination-btn pagination-prev"
+              hx-get="{% url 'gallery-results' %}"
+              hx-target="#gallery-results"
+              hx-include="#filter-form"
+              hx-vals='{"page": "{{ page_obj.previous_page_number }}"}'>
+        &larr; Previous
+      </button>
+    {% endif %}
+
+    <span class="pagination-info">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <button class="pagination-btn pagination-next"
+              hx-get="{% url 'gallery-results' %}"
+              hx-target="#gallery-results"
+              hx-include="#filter-form"
+              hx-vals='{"page": "{{ page_obj.next_page_number }}"}'>
+        Next &rarr;
+      </button>
+    {% endif %}
+  </nav>
+{% endif %}

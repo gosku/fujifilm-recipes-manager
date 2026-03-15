@@ -26,6 +26,9 @@ logs/
 # Assets (images)
 assets/
 
+# Generated thumbnail cache
+thumbnail_cache/
+
 # Tests / coverage
 .coverage
 .pytest_cache/
