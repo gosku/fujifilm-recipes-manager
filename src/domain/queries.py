@@ -4,6 +4,9 @@ import subprocess
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+
+from src.data.models import Image
 from src.domain.dataclasses import FujifilmRecipeData, ImageExifData
 from src.domain.recipe_values import (
     clarity_from_exif,
@@ -21,6 +24,14 @@ from src.domain.recipe_values import (
     white_balance_from_exif,
     white_balance_fine_tune_from_exif,
 )
+
+class ImageNotFound(Exception):
+    """Raised when no DB record matches the given image file."""
+
+
+class AmbiguousImageMatch(Exception):
+    """Raised when multiple DB records match the given image file."""
+
 
 EXIFTOOL_FIELD_MAP = {
     # Standard fields (non-FujiFilm group)
@@ -121,7 +132,7 @@ EXIFTOOL_FIELD_MAP = {
 }
 
 _EXIF_DATE_RE = re.compile(
-    r"^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})(?:([+-]\d{2}:\d{2}))?$"
+    r"^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:([+-]\d{2}:\d{2}))?$"
 )
 
 _WB_FINE_TUNE_RE = re.compile(r"(Red|Blue)\s+([+-]?\d+)")
@@ -226,6 +237,68 @@ def exif_to_recipe(exif: ImageExifData) -> FujifilmRecipeData:
         monochromatic_color_warm_cool=monochromatic_color_from_exif(exif.bw_adjustment),
         monochromatic_color_magenta_green=monochromatic_color_from_exif(exif.bw_magenta_green),
     )
+
+
+def _by_filename_and_date(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+    return Image.objects.get(filename=filename, date_taken=date_taken)
+
+
+def _by_date_film_and_wb(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+    return Image.objects.get(
+        date_taken=date_taken,
+        fujifilm_exif__film_simulation=exif.film_simulation,
+        fujifilm_exif__white_balance_fine_tune=exif.white_balance_fine_tune,
+    )
+
+
+def _by_date_and_image_count(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+    return Image.objects.get(date_taken=date_taken, fujifilm_exif__image_count=exif.image_count)
+
+
+def _by_date_and_film_simulation(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+    return Image.objects.get(date_taken=date_taken, fujifilm_exif__film_simulation=exif.film_simulation)
+
+
+def _by_date_only(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+    return Image.objects.get(date_taken=date_taken)
+
+
+_LOOKUP_STRATEGIES = [
+    _by_filename_and_date,
+    _by_date_and_image_count,
+    _by_date_film_and_wb,
+    _by_date_and_film_simulation,
+    _by_date_only,
+]
+
+
+def find_image_for_path(image_path: str) -> Image:
+    """Return the DB Image record that corresponds to the given image file.
+
+    Strategies are tried in order; the first one that returns a unique match
+    wins. To add a new strategy, append a function with the signature
+    (exif, filename, date_taken) -> Image to _LOOKUP_STRATEGIES.
+
+    Raises ImageNotFound if no strategy finds a match.
+    Raises AmbiguousImageMatch if a strategy finds more than one match.
+    """
+    exif = read_image_exif(image_path)
+    filename = Path(image_path).name
+    date_taken = parse_exif_date(exif.date_taken) if exif.date_taken else None
+
+    any_ambiguous = False
+    for strategy in _LOOKUP_STRATEGIES:
+        try:
+            return strategy(exif, filename, date_taken)
+        except ObjectDoesNotExist:
+            continue
+        except MultipleObjectsReturned:
+            any_ambiguous = True
+            continue
+
+    if any_ambiguous:
+        raise AmbiguousImageMatch(image_path)
+    raise ImageNotFound(image_path)
 
 
 def collect_image_paths(folder: str) -> list[str]:

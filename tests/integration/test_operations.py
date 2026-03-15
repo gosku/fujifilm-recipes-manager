@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from src.data.models import FujifilmRecipe, Image
 from src.domain import events
-from src.domain.operations import process_image
+from src.domain.dataclasses import ImageExifData
+from src.domain.operations import NoFilmSimulationError, process_image
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "images"
 FIXTURE_IMAGE = str(FIXTURES_DIR / "XS107114.JPG")
@@ -144,3 +146,17 @@ class TestProcessImagePersistence:
         assert updated_events[0]["params"]["filename"] == "XS107114.JPG"
         assert updated_events[0]["params"]["film_simulation"] == "Classic Negative"
         assert updated_events[0]["params"]["date_taken"] == "2025-12-31T12:23:57+11:00"
+
+
+@pytest.mark.django_db
+class TestProcessImageNoFilmSimulation:
+    def test_raises_when_film_simulation_and_color_are_empty(self):
+        """A Fujifilm image with no film simulation EXIF (e.g. a collage) must raise
+        NoFilmSimulationError rather than an unhandled KeyError."""
+        fujifilm_exif_without_film_sim = ImageExifData(camera_make="FUJIFILM", film_simulation="", color="")
+
+        with patch("src.domain.operations.read_image_exif", return_value=fujifilm_exif_without_film_sim):
+            with pytest.raises(NoFilmSimulationError):
+                process_image("any/path.jpg")
+
+        assert Image.objects.count() == 0

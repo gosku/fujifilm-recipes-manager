@@ -7,6 +7,7 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 Django==6.0.3
+django-stubs==5.2.9
 grimp==3.14
 import-linter==2.11
 iniconfig==2.3.0

@@ -47,7 +47,10 @@ def process_image(image_path: str) -> Image:
 
     fujifilm_exif, _ = FujifilmExif.objects.get_or_create(**recipe_fields)
 
-    recipe_data = exif_to_recipe(metadata)
+    try:
+        recipe_data = exif_to_recipe(metadata)
+    except KeyError:
+        raise NoFilmSimulationError(image_path)
     fujifilm_recipe, _ = FujifilmRecipe.objects.get_or_create(
         film_simulation=recipe_data.film_simulation,
         dynamic_range=recipe_data.dynamic_range,
