@@ -10,6 +10,8 @@ click-repl==0.3.0
 beautifulsoup4==4.13.4
 Django==6.0.3
 django-stubs==5.2.9
+django-stubs-ext==5.2.9
+psycopg2-binary==2.9.11
 grimp==3.14
 import-linter==2.11
 iniconfig==2.3.0
