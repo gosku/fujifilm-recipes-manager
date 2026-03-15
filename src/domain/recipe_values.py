@@ -52,7 +52,7 @@ class FilmSimulation(str, Enum):
         return _FILM_SIMULATION_LABELS[self]
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> FilmSimulation:
+    def from_recipe_card(cls, *, label: str) -> FilmSimulation:
         return _FILM_SIMULATION_FROM_LABEL[label]
 
 
@@ -110,7 +110,7 @@ _FILM_SIMULATION_FROM_COLOR: dict[str, FilmSimulation] = {
 }
 
 
-def film_simulation_from_exif(film_simulation: str, color: str) -> FilmSimulation:
+def film_simulation_from_exif(*, film_simulation: str, color: str) -> FilmSimulation:
     """Resolve the FilmSimulation from the two relevant EXIF fields."""
     if film_simulation:
         return _FILM_SIMULATION_FROM_EXIF[film_simulation]
@@ -149,7 +149,7 @@ class DRangePriority(str, Enum):
     STRONG = "Strong"
 
 
-def dynamic_range_from_exif(dynamic_range_setting: str, development_dynamic_range: str) -> str:
+def dynamic_range_from_exif(*, dynamic_range_setting: str, development_dynamic_range: str) -> str:
     """Return recipe dynamic_range string from EXIF fields.
 
     Returns empty string when dynamic_range_setting is absent (i.e. D-Range Priority is active).
@@ -163,7 +163,7 @@ def dynamic_range_from_exif(dynamic_range_setting: str, development_dynamic_rang
     }.get(development_dynamic_range, "")
 
 
-def d_range_priority_from_exif(d_range_priority: str, d_range_priority_auto: str) -> DRangePriority:
+def d_range_priority_from_exif(*, d_range_priority: str, d_range_priority_auto: str) -> DRangePriority:
     """Resolve D-Range Priority setting from the two relevant EXIF fields."""
     if d_range_priority == "Auto":
         return DRangePriority.AUTO
@@ -192,7 +192,7 @@ class WhiteBalance(str, Enum):
         return _WHITE_BALANCE_LABELS[self]
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> WhiteBalance:
+    def from_recipe_card(cls, *, label: str) -> WhiteBalance:
         """
         Parse a recipe card WB label such as 'AUTO', 'DAYLIGHT', '5200K'.
         Temperature labels (e.g. '5200K') return WhiteBalance.KELVIN;
@@ -234,7 +234,7 @@ class WhiteBalanceFineTune:
         return f"Red {self.red:+d}, Blue {self.blue:+d}"
 
     @classmethod
-    def from_string(cls, s: str) -> WhiteBalanceFineTune:
+    def from_string(cls, *, s: str) -> WhiteBalanceFineTune:
         """Parse a normalised WB fine-tune string, e.g. 'Red +2, Blue -4'."""
         m_red = re.search(r"Red\s+([+-]?\d+)", s)
         m_blue = re.search(r"Blue\s+([+-]?\d+)", s)
@@ -244,7 +244,7 @@ class WhiteBalanceFineTune:
         )
 
 
-def white_balance_from_exif(white_balance: str, color_temperature: str) -> str:
+def white_balance_from_exif(*, white_balance: str, color_temperature: str) -> str:
     """Return the WB display string for FujifilmRecipeData.
 
     Kelvin mode stores the temperature in a separate field; all other modes
@@ -256,11 +256,11 @@ def white_balance_from_exif(white_balance: str, color_temperature: str) -> str:
     return wb.value
 
 
-def white_balance_fine_tune_from_exif(white_balance_fine_tune: str) -> tuple[int, int]:
+def white_balance_fine_tune_from_exif(*, white_balance_fine_tune: str) -> tuple[int, int]:
     """Return (red, blue) fine-tune integers from the normalised EXIF string."""
     if not white_balance_fine_tune:
         return 0, 0
-    ft = WhiteBalanceFineTune.from_string(white_balance_fine_tune)
+    ft = WhiteBalanceFineTune.from_string(s=white_balance_fine_tune)
     return ft.red, ft.blue
 
 
@@ -294,7 +294,7 @@ class DevelopmentDynamicRange(str, Enum):
         return "Auto" if self == DevelopmentDynamicRange.AUTO else "Manual"
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> DevelopmentDynamicRange:
+    def from_recipe_card(cls, *, label: str) -> DevelopmentDynamicRange:
         return _DDR_FROM_LABEL[label]
 
 
@@ -324,11 +324,11 @@ class ColorChromeEffect(str, Enum):
         return self.value
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> ColorChromeEffect:
+    def from_recipe_card(cls, *, label: str) -> ColorChromeEffect:
         return cls(label)
 
 
-def color_chrome_effect_from_exif(value: str) -> ColorChromeEffect:
+def color_chrome_effect_from_exif(*, value: str) -> ColorChromeEffect:
     """Return ColorChromeEffect from the EXIF 'Color Chrome Effect' field."""
     return ColorChromeEffect(value) if value else ColorChromeEffect.OFF
 
@@ -347,11 +347,11 @@ class ColorChromeFxBlue(str, Enum):
         return self.value
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> ColorChromeFxBlue:
+    def from_recipe_card(cls, *, label: str) -> ColorChromeFxBlue:
         return cls(label)
 
 
-def color_chrome_fx_blue_from_exif(value: str) -> ColorChromeFxBlue:
+def color_chrome_fx_blue_from_exif(*, value: str) -> ColorChromeFxBlue:
     """Return ColorChromeFxBlue from the EXIF 'Color Chrome FX Blue' field."""
     return ColorChromeFxBlue(value) if value else ColorChromeFxBlue.OFF
 
@@ -373,7 +373,7 @@ class GrainEffectRoughness(str, Enum):
         return self.value
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> GrainEffectRoughness:
+    def from_recipe_card(cls, *, label: str) -> GrainEffectRoughness:
         return cls(label)
 
 
@@ -387,7 +387,7 @@ class GrainEffectSize(str, Enum):
         return self.value
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> GrainEffectSize:
+    def from_recipe_card(cls, *, label: str) -> GrainEffectSize:
         return cls(label)
 
 
@@ -398,13 +398,13 @@ class GrainEffect:
     size: GrainEffectSize
 
     @classmethod
-    def from_recipe_card(cls, label: str) -> GrainEffect:
+    def from_recipe_card(cls, *, label: str) -> GrainEffect:
         label = label.strip()
         if label.lower() == "off":
             return cls(roughness=GrainEffectRoughness.OFF, size=GrainEffectSize.OFF)
         parts = label.split()
-        roughness = GrainEffectRoughness.from_recipe_card(parts[0])
-        size = GrainEffectSize.from_recipe_card(parts[1]) if len(parts) > 1 else GrainEffectSize.SMALL
+        roughness = GrainEffectRoughness.from_recipe_card(label=parts[0])
+        size = GrainEffectSize.from_recipe_card(label=parts[1]) if len(parts) > 1 else GrainEffectSize.SMALL
         return cls(roughness=roughness, size=size)
 
     @property
@@ -446,7 +446,7 @@ class HighlightTone(str, Enum):
         return _TONE_NUMERIC[self]
 
     @classmethod
-    def from_recipe_card(cls, value: str) -> HighlightTone:
+    def from_recipe_card(cls, *, value: str) -> HighlightTone:
         """Parse a recipe card numeric string e.g. '-1.0', '+2.0', '0'."""
         return _HIGHLIGHT_TONE_FROM_NUMERIC[float(value)]
 
@@ -474,7 +474,7 @@ class ShadowTone(str, Enum):
         return _TONE_NUMERIC[self]
 
     @classmethod
-    def from_recipe_card(cls, value: str) -> ShadowTone:
+    def from_recipe_card(cls, *, value: str) -> ShadowTone:
         """Parse a recipe card numeric string e.g. '+1.0', '-2.0', '0'."""
         return _SHADOW_TONE_FROM_NUMERIC[float(value)]
 
@@ -515,7 +515,7 @@ _TONE_NUMERIC.update({v: k for k, v in _HIGHLIGHT_TONE_MAP.items()})
 _TONE_NUMERIC.update({v: k for k, v in _SHADOW_TONE_MAP.items()})
 
 
-def _tone_str(n: float) -> str:
+def _tone_str(*, n: float) -> str:
     """Format a tone numeric value as a signed string, e.g. '+1.5', '-0.5', '0'."""
     if n == 0.0:
         return "0"
@@ -523,14 +523,14 @@ def _tone_str(n: float) -> str:
     return formatted if "." in f"{n}" or n % 1 != 0 else f"{int(n):+d}"
 
 
-def highlight_from_exif(highlight_tone: str) -> str:
+def highlight_from_exif(*, highlight_tone: str) -> str:
     """Return the highlight tone as a signed string, e.g. '+1.5', '-2', '0'."""
-    return _tone_str(HighlightTone(highlight_tone).numeric)
+    return _tone_str(n=HighlightTone(highlight_tone).numeric)
 
 
-def shadow_from_exif(shadow_tone: str) -> str:
+def shadow_from_exif(*, shadow_tone: str) -> str:
     """Return the shadow tone as a signed string, e.g. '+3', '-0.5', '0'."""
-    return _tone_str(ShadowTone(shadow_tone).numeric)
+    return _tone_str(n=ShadowTone(shadow_tone).numeric)
 
 
 # ---------------------------------------------------------------------------
@@ -555,7 +555,7 @@ class Color(str, Enum):
         return _COLOR_NUMERIC[self]
 
     @classmethod
-    def from_recipe_card(cls, value: str) -> Color:
+    def from_recipe_card(cls, *, value: str) -> Color:
         return _COLOR_FROM_NUMERIC[int(value)]
 
 
@@ -591,7 +591,7 @@ _NON_NUMERIC_COLOR_VALUES: frozenset[str] = frozenset({
 })
 
 
-def color_from_exif(color: str) -> str:
+def color_from_exif(*, color: str) -> str:
     """Return the numeric color/saturation value as a signed string, or 'N/A'.
 
     Positive values are prefixed with '+' (e.g. '+2'), negative with '-'
@@ -623,7 +623,7 @@ class Sharpness(str, Enum):
         return _SHARPNESS_NUMERIC[self]
 
     @classmethod
-    def from_recipe_card(cls, value: str) -> Sharpness:
+    def from_recipe_card(cls, *, value: str) -> Sharpness:
         return _SHARPNESS_FROM_NUMERIC[int(value)]
 
 
@@ -643,7 +643,7 @@ _SHARPNESS_NUMERIC: dict[Sharpness, int] = {v: k for k, v in _SHARPNESS_MAP.item
 _NUMERIC_SHARPNESS_VALUES: frozenset[str] = frozenset(s.value for s in Sharpness)
 
 
-def sharpness_from_exif(sharpness: str) -> str:
+def sharpness_from_exif(*, sharpness: str) -> str:
     """Return the numeric sharpness value as a signed string, or 'N/A'.
 
     'Film Simulation' appears on some bodies where sharpness is controlled by
@@ -672,7 +672,7 @@ class NoiseReduction(str, Enum):
         return _NOISE_REDUCTION_NUMERIC[self]
 
     @classmethod
-    def from_recipe_card(cls, value: str) -> NoiseReduction:
+    def from_recipe_card(cls, *, value: str) -> NoiseReduction:
         return _NOISE_REDUCTION_FROM_NUMERIC[int(value)]
 
 
@@ -693,7 +693,7 @@ _NOISE_REDUCTION_NUMERIC: dict[NoiseReduction, int] = {v: k for k, v in _NOISE_R
 _NOISE_REDUCTION_LEGACY: dict[str, int] = {"Normal": 0}
 
 
-def noise_reduction_from_exif(noise_reduction: str) -> str:
+def noise_reduction_from_exif(*, noise_reduction: str) -> str:
     """Return the numeric noise reduction value as a signed string.
 
     Handles the legacy 'Normal' label from older firmware as 0.
@@ -710,7 +710,7 @@ def noise_reduction_from_exif(noise_reduction: str) -> str:
 # Stored as a bare integer string ("-5" … "5"). Range: -5 to +5, step 1.
 # ---------------------------------------------------------------------------
 
-def clarity_from_exif(clarity: str) -> str:
+def clarity_from_exif(*, clarity: str) -> str:
     """Return the numeric clarity value as a signed string, e.g. '+3', '-4', '0'."""
     n = int(clarity)
     return f"+{n}" if n > 0 else str(n)
@@ -722,7 +722,7 @@ def clarity_from_exif(clarity: str) -> str:
 # Empty on colour film simulations that don't support monochromatic tuning.
 # ---------------------------------------------------------------------------
 
-def monochromatic_color_from_exif(value: str) -> str:
+def monochromatic_color_from_exif(*, value: str) -> str:
     """Return the monochromatic tuning value as a signed string, or 'N/A'.
 
     Empty EXIF values indicate a colour film simulation where this setting

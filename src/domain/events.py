@@ -11,7 +11,7 @@ TASK_IMAGE_STARTED = "task.image.started"
 TASK_IMAGE_COMPLETED = "task.image.completed"
 
 
-def publish_event(event_type: str, params: dict | None = None) -> None:
+def publish_event(*, event_type: str, params: dict | None = None) -> None:
     """Publish a structured application event."""
     log_kwargs: dict = {"event_type": event_type}
     if params:

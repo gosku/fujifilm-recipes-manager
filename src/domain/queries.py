@@ -134,7 +134,7 @@ _GROUP_OVERRIDES = {
 }
 
 
-def parse_exif_date(value: str) -> datetime | None:
+def parse_exif_date(*, value: str) -> datetime | None:
     """Parse an exiftool date string into a timezone-aware datetime."""
     m = _EXIF_DATE_RE.match(value.strip())
     if not m:
@@ -150,7 +150,7 @@ def parse_exif_date(value: str) -> datetime | None:
     return datetime(year, month, day, hour, minute, second, tzinfo=tz)
 
 
-def _normalize_wb_fine_tune(raw: str) -> str:
+def _normalize_wb_fine_tune(*, raw: str) -> str:
     """Divide exiftool White Balance Fine Tune values by 20 to get camera values."""
     def _divide(m: re.Match) -> str:
         return f"{m.group(1)} {int(m.group(2)) // 20:+d}"
@@ -191,44 +191,44 @@ def read_image_exif(*, image_path: str) -> ImageExifData:
         metadata[field] = value
     if "white_balance_fine_tune" in metadata:
         metadata["white_balance_fine_tune"] = _normalize_wb_fine_tune(
-            metadata["white_balance_fine_tune"]
+            raw=metadata["white_balance_fine_tune"]
         )
     return ImageExifData(**metadata)
 
 
 def exif_to_recipe(*, exif: ImageExifData) -> FujifilmRecipeData:
     """Convert an ImageExifData instance to a FujifilmRecipeData."""
-    film_simulation = recipe_values.film_simulation_from_exif(exif.film_simulation, exif.color).display_name
-    d_range_priority = recipe_values.d_range_priority_from_exif(exif.d_range_priority, exif.d_range_priority_auto)
-    dynamic_range = recipe_values.dynamic_range_from_exif(exif.dynamic_range_setting, exif.development_dynamic_range) if d_range_priority.value == "Off" else ""
-    wb_red, wb_blue = recipe_values.white_balance_fine_tune_from_exif(exif.white_balance_fine_tune)
+    film_simulation = recipe_values.film_simulation_from_exif(film_simulation=exif.film_simulation, color=exif.color).display_name
+    d_range_priority = recipe_values.d_range_priority_from_exif(d_range_priority=exif.d_range_priority, d_range_priority_auto=exif.d_range_priority_auto)
+    dynamic_range = recipe_values.dynamic_range_from_exif(dynamic_range_setting=exif.dynamic_range_setting, development_dynamic_range=exif.development_dynamic_range) if d_range_priority.value == "Off" else ""
+    wb_red, wb_blue = recipe_values.white_balance_fine_tune_from_exif(white_balance_fine_tune=exif.white_balance_fine_tune)
     return FujifilmRecipeData(
         film_simulation=film_simulation,
         dynamic_range=dynamic_range,
         d_range_priority=d_range_priority.value,
         grain_roughness=exif.grain_effect_roughness,
         grain_size=exif.grain_effect_size,
-        color_chrome_effect=recipe_values.color_chrome_effect_from_exif(exif.color_chrome_effect).value,
-        color_chrome_fx_blue=recipe_values.color_chrome_fx_blue_from_exif(exif.color_chrome_fx_blue).value,
-        white_balance=recipe_values.white_balance_from_exif(exif.white_balance, exif.color_temperature),
+        color_chrome_effect=recipe_values.color_chrome_effect_from_exif(value=exif.color_chrome_effect).value,
+        color_chrome_fx_blue=recipe_values.color_chrome_fx_blue_from_exif(value=exif.color_chrome_fx_blue).value,
+        white_balance=recipe_values.white_balance_from_exif(white_balance=exif.white_balance, color_temperature=exif.color_temperature),
         white_balance_red=wb_red,
         white_balance_blue=wb_blue,
-        highlight=recipe_values.highlight_from_exif(exif.highlight_tone),
-        shadow=recipe_values.shadow_from_exif(exif.shadow_tone),
-        color=recipe_values.color_from_exif(exif.color),
-        sharpness=recipe_values.sharpness_from_exif(exif.sharpness),
-        high_iso_nr=recipe_values.noise_reduction_from_exif(exif.noise_reduction),
-        clarity=recipe_values.clarity_from_exif(exif.clarity),
-        monochromatic_color_warm_cool=recipe_values.monochromatic_color_from_exif(exif.bw_adjustment),
-        monochromatic_color_magenta_green=recipe_values.monochromatic_color_from_exif(exif.bw_magenta_green),
+        highlight=recipe_values.highlight_from_exif(highlight_tone=exif.highlight_tone),
+        shadow=recipe_values.shadow_from_exif(shadow_tone=exif.shadow_tone),
+        color=recipe_values.color_from_exif(color=exif.color),
+        sharpness=recipe_values.sharpness_from_exif(sharpness=exif.sharpness),
+        high_iso_nr=recipe_values.noise_reduction_from_exif(noise_reduction=exif.noise_reduction),
+        clarity=recipe_values.clarity_from_exif(clarity=exif.clarity),
+        monochromatic_color_warm_cool=recipe_values.monochromatic_color_from_exif(value=exif.bw_adjustment),
+        monochromatic_color_magenta_green=recipe_values.monochromatic_color_from_exif(value=exif.bw_magenta_green),
     )
 
 
-def _by_filename_and_date(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+def _by_filename_and_date(*, exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
     return Image.objects.get(filename=filename, taken_at=date_taken)
 
 
-def _by_date_film_and_wb(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+def _by_date_film_and_wb(*, exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
     return Image.objects.get(
         taken_at=date_taken,
         fujifilm_exif__film_simulation=exif.film_simulation,
@@ -236,15 +236,15 @@ def _by_date_film_and_wb(exif: ImageExifData, filename: str, date_taken: datetim
     )
 
 
-def _by_date_and_image_count(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+def _by_date_and_image_count(*, exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
     return Image.objects.get(taken_at=date_taken, fujifilm_exif__image_count=exif.image_count)
 
 
-def _by_date_and_film_simulation(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+def _by_date_and_film_simulation(*, exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
     return Image.objects.get(taken_at=date_taken, fujifilm_exif__film_simulation=exif.film_simulation)
 
 
-def _by_date_only(exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
+def _by_date_only(*, exif: ImageExifData, filename: str, date_taken: datetime | None) -> Image:
     return Image.objects.get(taken_at=date_taken)
 
 
@@ -269,12 +269,12 @@ def find_image_for_path(*, image_path: str) -> Image:
     """
     exif = read_image_exif(image_path=image_path)
     filename = Path(image_path).name
-    date_taken = parse_exif_date(exif.date_taken) if exif.date_taken else None
+    date_taken = parse_exif_date(value=exif.date_taken) if exif.date_taken else None
 
     any_ambiguous = False
     for strategy in _LOOKUP_STRATEGIES:
         try:
-            return strategy(exif, filename, date_taken)
+            return strategy(exif=exif, filename=filename, date_taken=date_taken)
         except ObjectDoesNotExist:
             continue
         except MultipleObjectsReturned:

@@ -258,13 +258,13 @@ class TestReadImageExif:
 
 class TestNormaliseWbFineTune:
     def test_divides_values_by_20(self):
-        assert _normalize_wb_fine_tune("Red +60, Blue -100") == "Red +3, Blue -5"
+        assert _normalize_wb_fine_tune(raw="Red +60, Blue -100") == "Red +3, Blue -5"
 
     def test_handles_zero(self):
-        assert _normalize_wb_fine_tune("Red +20, Blue +0") == "Red +1, Blue +0"
+        assert _normalize_wb_fine_tune(raw="Red +20, Blue +0") == "Red +1, Blue +0"
 
     def test_handles_negative_red(self):
-        assert _normalize_wb_fine_tune("Red -40, Blue +60") == "Red -2, Blue +3"
+        assert _normalize_wb_fine_tune(raw="Red -40, Blue +60") == "Red -2, Blue +3"
 
 
 class TestCollectImagePaths:

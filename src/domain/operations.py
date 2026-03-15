@@ -5,7 +5,7 @@ from src.data.models import FujifilmExif, FujifilmRecipe, Image, RECIPE_FIELDS
 from src.domain import events, queries
 
 
-def _parse_numeric(s: str) -> int | None:
+def _parse_numeric(*, s: str) -> int | None:
     """Convert a signed numeric string like '+4', '-1', '0' to int, or None for 'N/A'."""
     if s == "N/A":
         return None
@@ -38,7 +38,7 @@ def process_image(*, image_path: str) -> Image:
     filename = os.path.basename(image_path)
 
     # Convert date string to timezone-aware datetime
-    date_taken = queries.parse_exif_date(metadata.date_taken) if metadata.date_taken else None
+    date_taken = queries.parse_exif_date(value=metadata.date_taken) if metadata.date_taken else None
 
     exif_fields = attrs.asdict(metadata)
     exif_fields.pop("date_taken")
@@ -61,14 +61,14 @@ def process_image(*, image_path: str) -> Image:
         white_balance=recipe_data.white_balance,
         white_balance_red=recipe_data.white_balance_red,
         white_balance_blue=recipe_data.white_balance_blue,
-        highlight=_parse_numeric(recipe_data.highlight),
-        shadow=_parse_numeric(recipe_data.shadow),
-        color=_parse_numeric(recipe_data.color),
-        sharpness=_parse_numeric(recipe_data.sharpness),
-        high_iso_nr=_parse_numeric(recipe_data.high_iso_nr),
-        clarity=_parse_numeric(recipe_data.clarity),
-        monochromatic_color_warm_cool=_parse_numeric(recipe_data.monochromatic_color_warm_cool),
-        monochromatic_color_magenta_green=_parse_numeric(recipe_data.monochromatic_color_magenta_green),
+        highlight=_parse_numeric(s=recipe_data.highlight),
+        shadow=_parse_numeric(s=recipe_data.shadow),
+        color=_parse_numeric(s=recipe_data.color),
+        sharpness=_parse_numeric(s=recipe_data.sharpness),
+        high_iso_nr=_parse_numeric(s=recipe_data.high_iso_nr),
+        clarity=_parse_numeric(s=recipe_data.clarity),
+        monochromatic_color_warm_cool=_parse_numeric(s=recipe_data.monochromatic_color_warm_cool),
+        monochromatic_color_magenta_green=_parse_numeric(s=recipe_data.monochromatic_color_magenta_green),
     )
 
     image, created = Image.update_or_create(
