@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ image.filename }}</title>
+  {% load image_filters %}
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: sans-serif;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-overlay {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0.75rem 1.25rem;
+      background: rgba(0,0,0,0.6);
+      flex-shrink: 0;
+    }
+
+    .detail-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 1.25rem;
+      text-decoration: none;
+      transition: background 0.15s;
+      line-height: 1;
+    }
+
+    .detail-close:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .detail-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .detail-image-col {
+      flex: 0 0 70%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: #111;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .detail-image {
+      max-width: 100%;
+      max-height: calc(100vh - 5rem);
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .detail-info-col {
+      flex: 0 0 30%;
+      overflow-y: auto;
+      padding: 1.5rem;
+      background: #1a1a1a;
+      color: #ddd;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .detail-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid #333;
+    }
+
+    /* Single-field row */
+    .detail-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0.55rem;
+    }
+
+    .detail-row:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Multi-column grouped row */
+    .detail-row-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .detail-row-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-cell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .detail-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+      margin-bottom: 0.1rem;
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      color: #ddd;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+<div class="detail-overlay">
+  <header class="detail-header">
+    <a href="{% url 'gallery' %}" class="detail-close" title="Close">&#x2715;</a>
+  </header>
+
+  <div class="detail-body">
+
+    <div class="detail-image-col">
+      <img class="detail-image"
+           src="{% url 'image-file' image.id %}"
+           alt="{{ image.filename }}">
+    </div>
+
+    <aside class="detail-info-col">
+
+      <!-- Section 1: Key shooting info -->
+      <section class="detail-key-info">
+        <h2 class="detail-section-title">Key Info</h2>
+
+        <div class="detail-row-group">
+          <div class="detail-cell">
+            <span class="detail-label">Filename</span>
+            <span class="detail-value">{{ image.filename }}</span>
+          </div>
+          {% if image.camera_make or image.camera_model %}
+            <div class="detail-cell">
+              <span class="detail-label">Camera</span>
+              <span class="detail-value">{{ image.camera_make }} {{ image.camera_model }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if image.focal_length or image.taken_at %}
+          <div class="detail-row-group">
+            {% if image.focal_length %}
+              <div class="detail-cell">
+                <span class="detail-label">Focal Length</span>
+                <span class="detail-value">{{ image.focal_length }}</span>
+              </div>
+            {% endif %}
+            {% if image.taken_at %}
+              <div class="detail-cell">
+                <span class="detail-label">Taken at</span>
+                <span class="detail-value">{{ image.taken_at }}</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if image.aperture or image.shutter_speed or image.iso %}
+          <div class="detail-row-group">
+            {% if image.aperture %}
+              <div class="detail-cell">
+                <span class="detail-label">Aperture</span>
+                <span class="detail-value">f/{{ image.aperture }}</span>
+              </div>
+            {% endif %}
+            {% if image.shutter_speed %}
+              <div class="detail-cell">
+                <span class="detail-label">Shutter</span>
+                <span class="detail-value">{{ image.shutter_speed }}</span>
+              </div>
+            {% endif %}
+            {% if image.iso %}
+              <div class="detail-cell">
+                <span class="detail-label">ISO</span>
+                <span class="detail-value">{{ image.iso }}</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <div class="detail-row">
+          <span class="detail-label">Path</span>
+          <span class="detail-value">{{ image.filepath }}</span>
+        </div>
+      </section>
+
+      <!-- Section 2: Fujifilm recipe -->
+      {% if image.fujifilm_recipe %}
+        <section class="detail-recipe">
+          <h2 class="detail-section-title">Fujifilm Recipe</h2>
+
+          {% if image.fujifilm_recipe.name %}
+            <div class="detail-row">
+              <span class="detail-label">Name</span>
+              <span class="detail-value">{{ image.fujifilm_recipe.name }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.film_simulation %}
+            <div class="detail-row">
+              <span class="detail-label">Film Simulation</span>
+              <span class="detail-value">{{ image.fujifilm_recipe.film_simulation }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.dynamic_range or image.fujifilm_recipe.d_range_priority %}
+            <div class="detail-row-group">
+              {% if image.fujifilm_recipe.dynamic_range %}
+                <div class="detail-cell">
+                  <span class="detail-label">Dynamic Range</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.dynamic_range }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.d_range_priority %}
+                <div class="detail-cell">
+                  <span class="detail-label">D-Range Priority</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.d_range_priority }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.grain_roughness or image.fujifilm_recipe.grain_size %}
+            <div class="detail-row-group">
+              {% if image.fujifilm_recipe.grain_roughness %}
+                <div class="detail-cell">
+                  <span class="detail-label">Grain Roughness</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.grain_roughness }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.grain_size %}
+                <div class="detail-cell">
+                  <span class="detail-label">Grain Size</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.grain_size }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.color_chrome_effect or image.fujifilm_recipe.color_chrome_fx_blue %}
+            <div class="detail-row-group">
+              {% if image.fujifilm_recipe.color_chrome_effect %}
+                <div class="detail-cell">
+                  <span class="detail-label">Color Chrome Effect</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.color_chrome_effect }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.color_chrome_fx_blue %}
+                <div class="detail-cell">
+                  <span class="detail-label">Color Chrome FX Blue</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.color_chrome_fx_blue }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.white_balance %}
+            <div class="detail-row-group">
+              <div class="detail-cell">
+                <span class="detail-label">White Balance</span>
+                <span class="detail-value">{{ image.fujifilm_recipe.white_balance }}</span>
+              </div>
+              <div class="detail-cell">
+                <span class="detail-label">Red</span>
+                <span class="detail-value">{{ image.fujifilm_recipe.white_balance_red|signed }}</span>
+              </div>
+              <div class="detail-cell">
+                <span class="detail-label">Blue</span>
+                <span class="detail-value">{{ image.fujifilm_recipe.white_balance_blue|signed }}</span>
+              </div>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.highlight is not None or image.fujifilm_recipe.shadow is not None %}
+            <div class="detail-row-group">
+              {% if image.fujifilm_recipe.highlight is not None %}
+                <div class="detail-cell">
+                  <span class="detail-label">Highlight</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.highlight|signed }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.shadow is not None %}
+                <div class="detail-cell">
+                  <span class="detail-label">Shadow</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.shadow|signed }}</span>
+                </div>
+              {% endif %}
+              <div class="detail-cell">
+                <span class="detail-label">Color</span>
+                <span class="detail-value">{{ image.fujifilm_recipe.color|signed }}</span>
+              </div>
+            </div>
+          {% else %}
+            <div class="detail-row">
+              <span class="detail-label">Color</span>
+              <span class="detail-value">{{ image.fujifilm_recipe.color|signed }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_recipe.sharpness is not None or image.fujifilm_recipe.high_iso_nr is not None or image.fujifilm_recipe.clarity is not None %}
+            <div class="detail-row-group">
+              {% if image.fujifilm_recipe.sharpness is not None %}
+                <div class="detail-cell">
+                  <span class="detail-label">Sharpness</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.sharpness|signed }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.high_iso_nr is not None %}
+                <div class="detail-cell">
+                  <span class="detail-label">ISO NR</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.high_iso_nr|signed }}</span>
+                </div>
+              {% endif %}
+              {% if image.fujifilm_recipe.clarity is not None %}
+                <div class="detail-cell">
+                  <span class="detail-label">Clarity</span>
+                  <span class="detail-value">{{ image.fujifilm_recipe.clarity|signed }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      <!-- Section 3: Additional EXIF and image metadata -->
+      {% if image.fujifilm_exif %}
+        <section class="detail-exif">
+          <h2 class="detail-section-title">Additional EXIF</h2>
+
+          {% if image.exposure_compensation %}
+            <div class="detail-row">
+              <span class="detail-label">Exposure Comp.</span>
+              <span class="detail-value">{{ image.exposure_compensation }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.picture_mode %}
+            <div class="detail-row">
+              <span class="detail-label">Picture Mode</span>
+              <span class="detail-value">{{ image.picture_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.quality %}
+            <div class="detail-row">
+              <span class="detail-label">Quality</span>
+              <span class="detail-value">{{ image.quality }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.flash_mode %}
+            <div class="detail-row">
+              <span class="detail-label">Flash Mode</span>
+              <span class="detail-value">{{ image.flash_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.flash_exposure_comp %}
+            <div class="detail-row">
+              <span class="detail-label">Flash Exp. Comp.</span>
+              <span class="detail-value">{{ image.flash_exposure_comp }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.focus_mode %}
+            <div class="detail-row">
+              <span class="detail-label">Focus Mode</span>
+              <span class="detail-value">{{ image.focus_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.shutter_type %}
+            <div class="detail-row">
+              <span class="detail-label">Shutter Type</span>
+              <span class="detail-value">{{ image.shutter_type }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.drive_mode %}
+            <div class="detail-row">
+              <span class="detail-label">Drive Mode</span>
+              <span class="detail-value">{{ image.drive_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.image_stabilization %}
+            <div class="detail-row">
+              <span class="detail-label">Image Stabilization</span>
+              <span class="detail-value">{{ image.image_stabilization }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.lens_modulation_optimizer %}
+            <div class="detail-row">
+              <span class="detail-label">Lens Mod. Optimizer</span>
+              <span class="detail-value">{{ image.lens_modulation_optimizer }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.af_mode %}
+            <div class="detail-row">
+              <span class="detail-label">AF Mode</span>
+              <span class="detail-value">{{ image.fujifilm_exif.af_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.af_area_mode %}
+            <div class="detail-row">
+              <span class="detail-label">AF Area Mode</span>
+              <span class="detail-value">{{ image.fujifilm_exif.af_area_mode }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.scene_recognition %}
+            <div class="detail-row">
+              <span class="detail-label">Scene Recognition</span>
+              <span class="detail-value">{{ image.fujifilm_exif.scene_recognition }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.image_generation %}
+            <div class="detail-row">
+              <span class="detail-label">Image Generation</span>
+              <span class="detail-value">{{ image.fujifilm_exif.image_generation }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.flicker_reduction %}
+            <div class="detail-row">
+              <span class="detail-label">Flicker Reduction</span>
+              <span class="detail-value">{{ image.fujifilm_exif.flicker_reduction }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.blur_warning %}
+            <div class="detail-row">
+              <span class="detail-label">Blur Warning</span>
+              <span class="detail-value">{{ image.fujifilm_exif.blur_warning }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.focus_warning %}
+            <div class="detail-row">
+              <span class="detail-label">Focus Warning</span>
+              <span class="detail-value">{{ image.fujifilm_exif.focus_warning }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.fuji_model %}
+            <div class="detail-row">
+              <span class="detail-label">Fuji Model</span>
+              <span class="detail-value">{{ image.fujifilm_exif.fuji_model }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.internal_serial_number %}
+            <div class="detail-row">
+              <span class="detail-label">Serial No.</span>
+              <span class="detail-value">{{ image.fujifilm_exif.internal_serial_number }}</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.min_focal_length %}
+            <div class="detail-row">
+              <span class="detail-label">Focal Length Range</span>
+              <span class="detail-value">{{ image.fujifilm_exif.min_focal_length }}–{{ image.fujifilm_exif.max_focal_length }} mm</span>
+            </div>
+          {% endif %}
+
+          {% if image.fujifilm_exif.faces_detected %}
+            <div class="detail-row">
+              <span class="detail-label">Faces Detected</span>
+              <span class="detail-value">{{ image.fujifilm_exif.faces_detected }}</span>
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
+
+    </aside>
+  </div>
+</div>
+
+</body>
+</html>

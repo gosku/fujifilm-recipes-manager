@@ -86,6 +86,14 @@ def gallery_view(request):
     )
 
 
+def image_detail_view(request, image_id):
+    image = get_object_or_404(
+        Image.objects.select_related("fujifilm_recipe", "fujifilm_exif"),
+        pk=image_id,
+    )
+    return render(request, "images/image_detail.html", {"image": image})
+
+
 def gallery_results_view(request):
     page_obj = _paginate(request, _get_filtered_images(request))
     return render(request, "images/_gallery_results.html", {"page_obj": page_obj})
