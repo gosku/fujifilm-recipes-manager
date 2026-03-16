@@ -1,9 +1,16 @@
 <div class="image-grid">
   {% for image in page_obj %}
     <article class="image-card">
-      <img class="image-thumbnail" src="{% url 'image-file' image.id %}?width=600" alt="{{ image.filename }}" loading="lazy">
+      <a class="detail-link" href="{% url 'image-detail' image.id %}">
+        <img class="image-thumbnail" src="{% url 'image-file' image.id %}?width=600" alt="{{ image.filename }}" loading="lazy">
+      </a>
       <span class="image-filename">{{ image.filename }}</span>
-      <span class="image-filepath">{{ image.filepath }}</span>
+      {% if image.fujifilm_recipe and image.fujifilm_recipe.name %}
+        <span class="image-recipe">{{ image.fujifilm_recipe.name }}</span>
+      {% endif %}
+      {% if image.aperture or image.shutter_speed or image.iso %}
+        <span class="image-exposure">({% if image.aperture %}f{{ image.aperture }}{% endif %}{% if image.shutter_speed %}{% if image.aperture %}, {% endif %}{{ image.shutter_speed }}{% endif %}{% if image.iso %}{% if image.aperture or image.shutter_speed %}, {% endif %}{{ image.iso }}{% endif %})</span>
+      {% endif %}
       {% if image.is_favorite %}
         <span class="image-favorite">Favorite</span>
       {% endif %}

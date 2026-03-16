@@ -66,9 +66,9 @@ class TestGalleryResultsView:
         assert cards[0].find(class_="image-favorite") is not None
         assert cards[1].find(class_="image-favorite") is None
 
-        # Both cards expose the filepath
-        assert cards[0].find(class_="image-filepath") is not None
-        assert cards[1].find(class_="image-filepath") is not None
+        # Both cards show the recipe name
+        assert cards[0].find(class_="image-recipe") is not None
+        assert cards[1].find(class_="image-recipe") is not None
 
 
 @pytest.mark.django_db
