@@ -58,7 +58,7 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-PROCESS_IMAGE_QUEUE = os.environ.get("PROCESS_IMAGE_QUEUE", "default")
+PROCESS_IMAGE_QUEUE = os.environ.get("PROCESS_IMAGE_QUEUE", "celery")
 
 # Logging
 LOG_DIR = BASE_DIR / "logs"
