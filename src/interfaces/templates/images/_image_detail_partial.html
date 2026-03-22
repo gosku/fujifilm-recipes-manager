@@ -74,8 +74,8 @@
   .detail-nav-next { right: 0.75rem; }
 
   .detail-image {
-    max-width: 100%;
-    max-height: calc(100vh - 5rem);
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     border-radius: 4px;
   }
@@ -155,17 +155,20 @@
                 hx-get="{% url 'image-detail' prev_id %}"
                 hx-target="#detail-overlay"
                 hx-push-url="{% url 'image-detail' prev_id %}"
-                hx-include="#filter-form">&#x2190;</button>
+                hx-include="#filter-form"
+                data-preload-url="{% url 'image-file' prev_id %}">&#x2190;</button>
       {% endif %}
       <img class="detail-image"
-           src="{% url 'image-file' image.id %}"
+           src="{% url 'image-file' image.id %}?width=600"
+           data-full-src="{% url 'image-file' image.id %}"
            alt="{{ image.filename }}">
       {% if next_id %}
         <button class="detail-nav detail-nav-next"
                 hx-get="{% url 'image-detail' next_id %}"
                 hx-target="#detail-overlay"
                 hx-push-url="{% url 'image-detail' next_id %}"
-                hx-include="#filter-form">&#x2192;</button>
+                hx-include="#filter-form"
+                data-preload-url="{% url 'image-file' next_id %}">&#x2192;</button>
       {% endif %}
     </div>
 

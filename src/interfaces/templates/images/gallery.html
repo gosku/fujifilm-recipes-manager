@@ -305,10 +305,40 @@
     }
   });
 
+  var preloadedUrls = new Set();
+
   document.body.addEventListener('htmx:afterSwap', function (e) {
-    if (e.detail.target.id === 'detail-overlay') {
-      e.detail.target.hidden = false;
-      document.querySelector('.gallery-scroll').style.overflow = 'hidden';
+    if (e.detail.target.id !== 'detail-overlay') return;
+    var overlay = e.detail.target;
+    overlay.hidden = false;
+    document.querySelector('.gallery-scroll').style.overflow = 'hidden';
+
+    var img = overlay.querySelector('.detail-image');
+    if (!img || !img.dataset.fullSrc) return;
+    var fullSrc = img.dataset.fullSrc;
+
+    function afterFullLoaded() {
+      img.src = fullSrc;
+      var nextUrl = overlay.querySelector('.detail-nav-next')?.dataset.preloadUrl;
+      var prevUrl = overlay.querySelector('.detail-nav-prev')?.dataset.preloadUrl;
+      if (nextUrl && !preloadedUrls.has(nextUrl)) {
+        var n = new Image();
+        n.onload = function () { preloadedUrls.add(nextUrl); };
+        n.src = nextUrl;
+      }
+      if (prevUrl && !preloadedUrls.has(prevUrl)) {
+        var p = new Image();
+        p.onload = function () { preloadedUrls.add(prevUrl); };
+        p.src = prevUrl;
+      }
+    }
+
+    if (preloadedUrls.has(fullSrc)) {
+      afterFullLoaded();
+    } else {
+      var full = new Image();
+      full.onload = afterFullLoaded;
+      full.src = fullSrc;
     }
   });
 
