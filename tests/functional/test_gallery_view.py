@@ -1,6 +1,7 @@
 import pytest
 from bs4 import BeautifulSoup
 from django.test import override_settings
+from django.utils import timezone
 
 from src.data.models import FujifilmRecipe, Image
 
@@ -152,3 +153,62 @@ class TestGalleryPagination:
         soup = BeautifulSoup(response.content, "html.parser")
         # Last page has 1 image; django's get_page() clamps to last page
         assert len(soup.find_all(class_="image-card")) == 1
+
+
+@pytest.mark.django_db
+class TestFavoritesFirstToggle:
+    """A favorite (older) image and a non-favourite (newer) image are created.
+    With the toggle enabled the favourite must come first; with it disabled the
+    newer image must come first."""
+
+    def setup_method(self):
+        recipe = FujifilmRecipe.objects.create(
+            name="Test Recipe",
+            film_simulation="Classic Chrome",
+            dynamic_range="DR Auto",
+            d_range_priority="Off",
+            grain_roughness="Off",
+            grain_size="Off",
+            color_chrome_effect="Off",
+            color_chrome_fx_blue="Off",
+            white_balance="Auto",
+            white_balance_red=0,
+            white_balance_blue=0,
+        )
+        now = timezone.now()
+        Image.objects.create(
+            filename="favorite_older.jpg",
+            filepath="/shots/favorite_older.jpg",
+            fujifilm_recipe=recipe,
+            is_favorite=True,
+            taken_at=now - timezone.timedelta(days=1),
+        )
+        Image.objects.create(
+            filename="nonfavorite_newer.jpg",
+            filepath="/shots/nonfavorite_newer.jpg",
+            fujifilm_recipe=recipe,
+            is_favorite=False,
+            taken_at=now,
+        )
+
+    def _filenames(self, response):
+        soup = BeautifulSoup(response.content, "html.parser")
+        return [card.find(class_="image-filename").text.strip() for card in soup.find_all(class_="image-card")]
+
+    def test_favorites_shown_first_when_toggle_enabled(self, client):
+        response = client.get("/images/results/", {"favorites_first": "1"})
+
+        assert response.status_code == 200
+        assert self._filenames(response) == ["favorite_older.jpg", "nonfavorite_newer.jpg"]
+
+    def test_newest_shown_first_when_toggle_disabled(self, client):
+        response = client.get("/images/results/", {"favorites_first": "0"})
+
+        assert response.status_code == 200
+        assert self._filenames(response) == ["nonfavorite_newer.jpg", "favorite_older.jpg"]
+
+    def test_favorites_shown_first_by_default(self, client):
+        response = client.get("/images/results/")
+
+        assert response.status_code == 200
+        assert self._filenames(response) == ["favorite_older.jpg", "nonfavorite_newer.jpg"]

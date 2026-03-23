@@ -83,6 +83,48 @@
       color: #222;
     }
 
+    .favorites-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #555;
+      user-select: none;
+    }
+
+    .favorites-toggle input[type="checkbox"] {
+      appearance: none;
+      width: 2rem;
+      height: 1.1rem;
+      background: #ccc;
+      border-radius: 1rem;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .favorites-toggle input[type="checkbox"]:checked {
+      background: #f97316;
+    }
+
+    .favorites-toggle input[type="checkbox"]::after {
+      content: '';
+      position: absolute;
+      width: 0.85rem;
+      height: 0.85rem;
+      background: #fff;
+      border-radius: 50%;
+      top: 0.125rem;
+      left: 0.125rem;
+      transition: left 0.2s;
+    }
+
+    .favorites-toggle input[type="checkbox"]:checked::after {
+      left: calc(100% - 0.975rem);
+    }
+
     #gallery-pagination {
       display: flex;
       align-items: center;
@@ -229,6 +271,13 @@
         hx-trigger="change"
         hx-target="#gallery-results"
         hx-push-url="true">
+    <div class="filter-group">
+      <label class="favorites-toggle" for="favorites-first-toggle">
+        <input type="checkbox" id="favorites-first-toggle">
+        Favorites first
+      </label>
+      <input type="hidden" name="favorites_first" id="favorites-first-input" value="{{ favorites_first }}">
+    </div>
     {% if recipe_options.options %}
       <div class="filter-group">
         <label class="filter-label" for="filter-recipe_id">{{ recipe_options.label }}</label>
@@ -283,6 +332,38 @@
       },
     });
   });
+
+  // Favorites-first toggle: persists in localStorage, syncs with URL param.
+  (function () {
+    var urlParams = new URLSearchParams(window.location.search);
+    var hiddenInput = document.getElementById('favorites-first-input');
+    var toggle = document.getElementById('favorites-first-toggle');
+
+    var val;
+    if (urlParams.has('favorites_first')) {
+      val = urlParams.get('favorites_first');
+    } else {
+      val = localStorage.getItem('favoritesFirst') ?? '1';
+      // Reflect current preference in the URL without a new history entry.
+      urlParams.set('favorites_first', val);
+      history.replaceState(null, '', '?' + urlParams.toString());
+      // If server rendered with its default (1) but preference is off, re-fetch.
+      if (val !== '1') {
+        hiddenInput.value = val;
+        document.getElementById('filter-form').dispatchEvent(new Event('change'));
+      }
+    }
+    localStorage.setItem('favoritesFirst', val);
+    hiddenInput.value = val;
+    toggle.checked = (val === '1');
+
+    toggle.addEventListener('change', function () {
+      var newVal = toggle.checked ? '1' : '0';
+      hiddenInput.value = newVal;
+      localStorage.setItem('favoritesFirst', newVal);
+      document.getElementById('filter-form').dispatchEvent(new Event('change'));
+    });
+  }());
 
   // Detail overlay logic.
   var _galleryUrl = null;

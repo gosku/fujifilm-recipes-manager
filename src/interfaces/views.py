@@ -32,7 +32,9 @@ def _get_filtered_images(request):
         value = request.GET.get(field)
         if value:
             qs = qs.filter(**{f"fujifilm_recipe__{field}": value})
-    return qs.order_by("-is_favorite", "-taken_at")
+    if request.GET.get("favorites_first", "1") == "1":
+        return qs.order_by("-is_favorite", "-taken_at")
+    return qs.order_by("-taken_at")
 
 
 def _get_recipe_options(request):
@@ -81,10 +83,16 @@ def gallery_view(request):
         return render(request, "images/_gallery_results.html", {"page_obj": page_obj})
     sidebar_options = _get_sidebar_options(request)
     recipe_options = _get_recipe_options(request)
+    favorites_first = request.GET.get("favorites_first", "1")
     return render(
         request,
         "images/gallery.html",
-        {"page_obj": page_obj, "sidebar_options": sidebar_options, "recipe_options": recipe_options},
+        {
+            "page_obj": page_obj,
+            "sidebar_options": sidebar_options,
+            "recipe_options": recipe_options,
+            "favorites_first": favorites_first,
+        },
     )
 
 
