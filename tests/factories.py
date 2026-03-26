@@ -1,0 +1,60 @@
+"""
+Factory Boy factories for the three core Django models.
+
+Usage::
+
+    from tests.factories import ImageFactory, FujifilmExifFactory, FujifilmRecipeFactory
+
+    # Minimal — all required fields filled with sensible defaults:
+    image = ImageFactory()
+    exif  = FujifilmExifFactory(film_simulation="Classic Negative")
+
+    # With a related exif object:
+    image = ImageFactory(fujifilm_exif=FujifilmExifFactory())
+
+    # Override anything:
+    image = ImageFactory(is_favorite=True, camera_model="X-T5")
+"""
+
+import factory
+
+from src.data.models import FujifilmExif, FujifilmRecipe, Image
+
+
+class FujifilmExifFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = FujifilmExif
+
+    # All model fields are blank=True, default="" so the only reason to set
+    # defaults here is readability.  Override per-test for anything specific.
+    film_simulation = "Provia"
+
+
+class FujifilmRecipeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = FujifilmRecipe
+
+    film_simulation     = "Provia"
+    dynamic_range       = "DR100"
+    d_range_priority    = "Off"
+    grain_roughness     = "Off"
+    grain_size          = "Off"
+    color_chrome_effect = "Off"
+    color_chrome_fx_blue = "Off"
+    white_balance       = "Auto"
+    white_balance_red   = 0
+    white_balance_blue  = 0
+    # Nullable Decimal fields left as None (model default)
+
+
+class ImageFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Image
+
+    # filepath has a unique constraint, so use a sequence to avoid collisions.
+    filename = factory.Sequence(lambda n: f"image_{n:04d}.jpg")
+    filepath = factory.Sequence(lambda n: f"/shots/image_{n:04d}.jpg")
+
+    camera_make  = "FUJIFILM"
+    camera_model = "X-S10"
+    # All other fields are blank=True, default="" or have a model-level default.
