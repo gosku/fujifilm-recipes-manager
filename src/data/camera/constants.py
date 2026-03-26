@@ -77,6 +77,7 @@ FILM_SIMULATION_TO_PTP: dict[str, int] = {
     "Eterna":                                          16,   # E
     "Classic Negative":                                17,   # NC (Nostalgic Neg)
     "Eterna Bleach Bypass":                            18,   # EB
+    "Nostalgic Negative":                              19,   # NN
     "Reala Ace":                                       20,   # RA
 }
 

@@ -1,0 +1,83 @@
+import attrs
+import pytest
+
+from src.data.camera.constants import FILM_SIMULATION_TO_PTP, PTP_TO_FILM_SIMULATION
+from src.domain.camera.queries import RecipePTPValues, recipe_to_ptp_values
+from src.domain.images.dataclasses import FujifilmRecipeData
+
+
+def _make_recipe(**overrides: object) -> FujifilmRecipeData:
+    defaults = dict(
+        film_simulation="Provia",
+        dynamic_range="DR100",
+        d_range_priority="Off",
+        grain_roughness="Off",
+        grain_size="Off",
+        color_chrome_effect="Off",
+        color_chrome_fx_blue="Off",
+        white_balance="Auto",
+        white_balance_red=0,
+        white_balance_blue=0,
+        highlight="0",
+        shadow="0",
+        color="0",
+        sharpness="0",
+        high_iso_nr="0",
+        clarity="0",
+        monochromatic_color_warm_cool="N/A",
+        monochromatic_color_magenta_green="N/A",
+    )
+    defaults.update(overrides)
+    return FujifilmRecipeData(**defaults)
+
+
+class TestFilmSimulationPTPMapping:
+    """Verify all film simulation PTP values match the filmkit reference."""
+
+    EXPECTED_VALUES = {
+        "Provia": 1,
+        "Velvia": 2,
+        "Astia": 3,
+        "Pro Neg. Hi": 4,
+        "Pro Neg. Std": 5,
+        "Monochrome STD": 6,
+        "Monochrome Yellow": 7,
+        "Monochrome Red": 8,
+        "Monochrome Green": 9,
+        "Sepia": 10,
+        "Classic Chrome": 11,
+        "Acros STD": 12,
+        "Acros Yellow": 13,
+        "Acros Red": 14,
+        "Acros Green": 15,
+        "Eterna": 16,
+        "Classic Negative": 17,
+        "Eterna Bleach Bypass": 18,
+        "Nostalgic Negative": 19,
+        "Reala Ace": 20,
+    }
+
+    @pytest.mark.parametrize(
+        "name, expected_ptp",
+        EXPECTED_VALUES.items(),
+        ids=EXPECTED_VALUES.keys(),
+    )
+    def test_film_simulation_to_ptp(self, name, expected_ptp):
+        assert FILM_SIMULATION_TO_PTP[name] == expected_ptp
+
+    @pytest.mark.parametrize(
+        "expected_ptp, name",
+        [(v, k) for k, v in EXPECTED_VALUES.items()],
+        ids=EXPECTED_VALUES.keys(),
+    )
+    def test_ptp_to_film_simulation(self, expected_ptp, name):
+        assert PTP_TO_FILM_SIMULATION[expected_ptp] == name
+
+    def test_no_gap_at_value_19(self):
+        """Nostalgic Negative occupies value 19, between Eterna BB (18) and Reala Ace (20)."""
+        assert FILM_SIMULATION_TO_PTP["Nostalgic Negative"] == 19
+
+    def test_nostalgic_negative_round_trips_through_recipe(self):
+        recipe = _make_recipe(film_simulation="Nostalgic Negative")
+        ptp = recipe_to_ptp_values(recipe)
+        assert ptp.FilmSimulation == 19
