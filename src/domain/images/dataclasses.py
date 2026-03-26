@@ -1,5 +1,14 @@
 import attrs
 
+RECIPE_NAME_MAX_LEN = 25
+
+
+def _validate_name(instance, attribute, value):
+    if value and (len(value) > RECIPE_NAME_MAX_LEN or not value.isascii()):
+        raise ValueError(
+            f"Recipe name must be ≤{RECIPE_NAME_MAX_LEN} ASCII characters, got {value!r}"
+        )
+
 
 @attrs.frozen
 class FujifilmRecipeData:
@@ -21,7 +30,7 @@ class FujifilmRecipeData:
     clarity: str
     monochromatic_color_warm_cool: str
     monochromatic_color_magenta_green: str
-    name: str = ""
+    name: str = attrs.field(default="", validator=_validate_name)
 
 
 @attrs.frozen

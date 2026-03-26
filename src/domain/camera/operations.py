@@ -16,7 +16,7 @@ import time
 from src.data.camera import constants
 from src.domain.camera.ptp_device import CameraConnectionError, PTPDevice
 from src.domain.camera.queries import recipe_to_ptp_values
-from src.domain.images.dataclasses import FujifilmRecipeData
+from src.domain.images.dataclasses import RECIPE_NAME_MAX_LEN, FujifilmRecipeData
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,11 @@ def push_recipe(
         CameraConnectionError: If the camera becomes unreachable during the
                                write sequence (mid-write abort).
     """
+    if slot_name and (len(slot_name) > RECIPE_NAME_MAX_LEN or not slot_name.isascii()):
+        raise ValueError(
+            f"slot_name must be ≤{RECIPE_NAME_MAX_LEN} ASCII characters, got {slot_name!r}"
+        )
+
     # --- Phase 1: set slot cursor ---
     rc = device.set_property_uint16(constants.PROP_SLOT_CURSOR, slot_index)
     if rc != 0:

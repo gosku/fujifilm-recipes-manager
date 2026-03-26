@@ -1,4 +1,14 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+
+from src.domain.images.dataclasses import RECIPE_NAME_MAX_LEN
+
+
+def _validate_recipe_name(value):
+    if value and (len(value) > RECIPE_NAME_MAX_LEN or not value.isascii()):
+        raise ValidationError(
+            f"Recipe name must be ≤{RECIPE_NAME_MAX_LEN} ASCII characters."
+        )
 
 RECIPE_FIELDS = (
     "film_simulation",
@@ -68,7 +78,7 @@ RECIPE_FIELDS = (
 
 
 class FujifilmExif(models.Model):
-    name = models.CharField(max_length=255, blank=True, default="")
+    name = models.CharField(max_length=RECIPE_NAME_MAX_LEN, blank=True, default="", validators=[_validate_recipe_name])
 
     # Creative / recipe settings
     film_simulation = models.CharField(max_length=100, blank=True, default="")
@@ -167,7 +177,7 @@ class FujifilmExif(models.Model):
 
 
 class FujifilmRecipe(models.Model):
-    name = models.CharField(max_length=255, blank=True, default="")
+    name = models.CharField(max_length=RECIPE_NAME_MAX_LEN, blank=True, default="", validators=[_validate_recipe_name])
     film_simulation = models.CharField(max_length=100)
     dynamic_range = models.CharField(max_length=100)
     d_range_priority = models.CharField(max_length=50, default="Off")
