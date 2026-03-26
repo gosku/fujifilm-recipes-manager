@@ -56,19 +56,19 @@ def push_recipe_to_camera(
 
     time.sleep(PRE_WRITE_DELAY_S)
 
-    # Rename slot now that the cursor is positioned.
+    # --- Step 2: validate recipe and translate to PTP values ---
+    # Validation happens here, before any writes, so an invalid recipe never
+    # touches the camera.
+    ptp_items = recipe_to_ptp_values(recipe).items()
+
+    # --- Step 3: write slot name then each recipe property ---
+    failed_codes: list[int] = [code for code, _ in ptp_items]  # shrinks as writes succeed
+    written: list[tuple[int, int]] = []  # (code, value) pairs that reported success
+
+    # Slot name is a string property written first in the sequence.
     current_name = device.get_property_string(constants.PROP_SLOT_NAME)
     if current_name != recipe.name:
         device.set_property_string(constants.PROP_SLOT_NAME, recipe.name)
-
-    # --- Step 2: validate recipe and translate to PTP values ---
-    # recipe_to_ptp_values validates the recipe internally before converting,
-    # including that recipe.name is non-blank.
-    ptp_items = recipe_to_ptp_values(recipe).items()
-
-    # --- Step 3: write each property ---
-    failed_codes: list[int] = [code for code, _ in ptp_items]  # shrinks as writes succeed
-    written: list[tuple[int, int]] = []  # (code, value) pairs that reported success
 
     for code, value in ptp_items:
         time.sleep(PRE_WRITE_DELAY_S)   # 50 ms before write
