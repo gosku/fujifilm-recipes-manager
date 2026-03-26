@@ -15,6 +15,7 @@ import time
 import attrs
 
 from src.data.camera import constants
+from src.domain.camera import events
 from src.domain.camera.ptp_device import CameraConnectionError, PTPDevice
 from src.domain.images.dataclasses import FujifilmRecipeData
 
@@ -35,6 +36,62 @@ _GRAIN_TO_PTP: dict[tuple[str, str], int] = {
 _CCE_TO_PTP: dict[str, int] = {v: k for k, v in constants.CUSTOM_SLOT_CCE_PTP.items()}
 _CFX_TO_PTP: dict[str, int] = {v: k for k, v in constants.CUSTOM_SLOT_CFX_PTP.items()}
 _NR_TO_PTP: dict[int, int] = {v: k for k, v in constants.CUSTOM_SLOT_NR_DECODE.items()}
+
+
+# ---------------------------------------------------------------------------
+# Event-publishing property-read helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_int(device: PTPDevice, code: int) -> int:
+    """Read a 32-bit int property, publishing a read event on success or failure."""
+    try:
+        value = device.get_property_int(code)
+        events.publish_event(
+            event_type=events.PTP_READ_SUCCEEDED,
+            params={"description": f"0x{code:04X} = {value}"},
+        )
+        return value
+    except CameraConnectionError as exc:
+        events.publish_event(
+            event_type=events.PTP_READ_FAILED,
+            params={"description": f"0x{code:04X}: {exc}"},
+        )
+        raise
+
+
+def _get_int16(device: PTPDevice, code: int) -> int:
+    """Read an int16 property, publishing a read event on success or failure."""
+    try:
+        value = device.get_property_int16(code)
+        events.publish_event(
+            event_type=events.PTP_READ_SUCCEEDED,
+            params={"description": f"0x{code:04X} = {value}"},
+        )
+        return value
+    except CameraConnectionError as exc:
+        events.publish_event(
+            event_type=events.PTP_READ_FAILED,
+            params={"description": f"0x{code:04X}: {exc}"},
+        )
+        raise
+
+
+def _get_str(device: PTPDevice, code: int) -> str:
+    """Read a string property, publishing a read event on success or failure."""
+    try:
+        value = device.get_property_string(code)
+        events.publish_event(
+            event_type=events.PTP_READ_SUCCEEDED,
+            params={"description": f"0x{code:04X} = {value!r}"},
+        )
+        return value
+    except CameraConnectionError as exc:
+        events.publish_event(
+            event_type=events.PTP_READ_FAILED,
+            params={"description": f"0x{code:04X}: {exc}"},
+        )
+        raise
 
 
 def _signed(v: int | float) -> str:
@@ -66,10 +123,10 @@ def camera_info(device: PTPDevice) -> CameraInfo:
 
     This is safe to call at any time after connect().
     """
-    battery_raw = device.get_property_int(constants.PROP_BATTERY)
-    usb_mode = device.get_property_int(0xD16E)         # PTP_DPC_FUJI_USBMode
+    battery_raw = _get_int(device, constants.PROP_BATTERY)
+    usb_mode = _get_int(device, 0xD16E)         # PTP_DPC_FUJI_USBMode
     try:
-        firmware_version = device.get_property_int(0xD153)  # PTP_DPC_FUJI_FirmwareVersion
+        firmware_version = _get_int(device, 0xD153)  # PTP_DPC_FUJI_FirmwareVersion
     except CameraConnectionError:
         firmware_version = 0  # not supported on all models (e.g. X-S10)
 
@@ -114,13 +171,11 @@ def slot_states(device: PTPDevice, slot_count: int) -> list[SlotState]:
         time.sleep(0.05)  # 50 ms between slots
 
         try:
-            name = device.get_property_string(constants.PROP_SLOT_NAME)
+            name = _get_str(device, constants.PROP_SLOT_NAME)
         except CameraConnectionError:
             name = ""  # older models (e.g. X-T2) don't serve 0xD18D as a string
         try:
-            film_sim_raw = device.get_property_int(
-                constants.CUSTOM_SLOT_CODES["FilmSimulation"]
-            )
+            film_sim_raw = _get_int(device, constants.CUSTOM_SLOT_CODES["FilmSimulation"])
         except CameraConnectionError:
             film_sim_raw = 0  # older models (e.g. X-T2) don't support custom-slot codes
         states.append(SlotState(index=idx, name=name, film_sim_ptp=film_sim_raw))
@@ -149,25 +204,25 @@ def slot_recipe(device: PTPDevice, slot_index: int) -> FujifilmRecipeData:
 
     codes = constants.CUSTOM_SLOT_CODES
 
-    name         = device.get_property_string(constants.PROP_SLOT_NAME)
-    film_sim_raw = device.get_property_int(codes["FilmSimulation"])
-    wb_raw       = device.get_property_int(codes["WhiteBalance"])
-    wb_kelvin    = device.get_property_int(codes["WhiteBalanceColorTemperature"])
-    wb_red       = device.get_property_int16(codes["WhiteBalanceRed"])
-    wb_blue      = device.get_property_int16(codes["WhiteBalanceBlue"])
-    dr_raw       = device.get_property_int(codes["DRangeMode"])
-    grain_raw    = device.get_property_int(codes["GrainEffect"])
-    cce_raw      = device.get_property_int(codes["ColorEffect"])
-    cfx_raw      = device.get_property_int(codes["ColorFx"])
-    color_raw    = device.get_property_int16(codes["ColorMode"])
-    sharp_raw    = device.get_property_int16(codes["Sharpness"])
-    hi_raw       = device.get_property_int16(codes["HighLightTone"])
-    sh_raw       = device.get_property_int16(codes["ShadowTone"])
-    nr_raw       = device.get_property_int(codes["HighIsoNoiseReduction"])
-    clarity_raw  = device.get_property_int16(codes["Definition"])
-    mc_wc_raw    = device.get_property_int16(codes["MonochromaticColorWarmCool"])
-    mc_mg_raw    = device.get_property_int16(codes["MonochromaticColorMagentaGreen"])
-    dr_pri_raw   = device.get_property_int(codes["DRangePriority"])
+    name         = _get_str(device, constants.PROP_SLOT_NAME)
+    film_sim_raw = _get_int(device, codes["FilmSimulation"])
+    wb_raw       = _get_int(device, codes["WhiteBalance"])
+    wb_kelvin    = _get_int(device, codes["WhiteBalanceColorTemperature"])
+    wb_red       = _get_int16(device, codes["WhiteBalanceRed"])
+    wb_blue      = _get_int16(device, codes["WhiteBalanceBlue"])
+    dr_raw       = _get_int(device, codes["DRangeMode"])
+    grain_raw    = _get_int(device, codes["GrainEffect"])
+    cce_raw      = _get_int(device, codes["ColorEffect"])
+    cfx_raw      = _get_int(device, codes["ColorFx"])
+    color_raw    = _get_int16(device, codes["ColorMode"])
+    sharp_raw    = _get_int16(device, codes["Sharpness"])
+    hi_raw       = _get_int16(device, codes["HighLightTone"])
+    sh_raw       = _get_int16(device, codes["ShadowTone"])
+    nr_raw       = _get_int(device, codes["HighIsoNoiseReduction"])
+    clarity_raw  = _get_int16(device, codes["Definition"])
+    mc_wc_raw    = _get_int16(device, codes["MonochromaticColorWarmCool"])
+    mc_mg_raw    = _get_int16(device, codes["MonochromaticColorMagentaGreen"])
+    dr_pri_raw   = _get_int(device, codes["DRangePriority"])
 
     # White balance: if the mode is Kelvin, express as "6500K" etc.
     wb_label = _PTP_TO_WB.get(wb_raw, "")
