@@ -3,50 +3,18 @@ from bs4 import BeautifulSoup
 from django.test import override_settings
 from django.utils import timezone
 
-from src.data.models import FujifilmRecipe, Image
-
-_RECIPE_DEFAULTS = dict(
-    film_simulation="Classic Chrome",
-    dynamic_range="DR Auto",
-    d_range_priority="Off",
-    grain_roughness="Off",
-    grain_size="Off",
-    color_chrome_effect="Off",
-    color_chrome_fx_blue="Off",
-    white_balance="Auto",
-    white_balance_red=0,
-    white_balance_blue=0,
-)
+from tests.factories import FujifilmRecipeFactory, ImageFactory
 
 
 @pytest.mark.django_db
 class TestGalleryResultsView:
     def test_filters_images_by_recipe_name(self, client):
         # Arrange: 2 recipes, 3 images (2 for recipe_a, 1 for recipe_b)
-        recipe_a = FujifilmRecipe.objects.create(
-            name="Classic Chrome Recipe", **_RECIPE_DEFAULTS
-        )
-        recipe_b = FujifilmRecipe.objects.create(
-            name="Velvia Recipe",
-            **{**_RECIPE_DEFAULTS, "film_simulation": "Velvia"},
-        )
-        Image.objects.create(
-            filename="fav.jpg",
-            filepath="/shots/fav.jpg",
-            fujifilm_recipe=recipe_a,
-            is_favorite=True,
-        )
-        Image.objects.create(
-            filename="normal.jpg",
-            filepath="/shots/normal.jpg",
-            fujifilm_recipe=recipe_a,
-            is_favorite=False,
-        )
-        Image.objects.create(
-            filename="other.jpg",
-            filepath="/shots/other.jpg",
-            fujifilm_recipe=recipe_b,
-        )
+        recipe_a = FujifilmRecipeFactory(name="Classic Chrome Recipe", film_simulation="Classic Chrome")
+        recipe_b = FujifilmRecipeFactory(name="Velvia Recipe", film_simulation="Velvia")
+        ImageFactory(filename="fav.jpg",    fujifilm_recipe=recipe_a, is_favorite=True)
+        ImageFactory(filename="normal.jpg", fujifilm_recipe=recipe_a, is_favorite=False)
+        ImageFactory(fujifilm_recipe=recipe_b)
 
         # Act: filter by recipe_a id
         response = client.get("/images/results/", {"recipe_id": recipe_a.id})
@@ -76,13 +44,8 @@ class TestGalleryResultsView:
 class TestGalleryPagination:
     @override_settings(GALLERY_PAGE_SIZE=2)
     def test_first_page_contains_page_size_images(self, client):
-        recipe = FujifilmRecipe.objects.create(name="Test Recipe", **_RECIPE_DEFAULTS)
-        for i in range(3):
-            Image.objects.create(
-                filename=f"img{i}.jpg",
-                filepath=f"/shots/img{i}.jpg",
-                fujifilm_recipe=recipe,
-            )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
+        ImageFactory.create_batch(3, fujifilm_recipe=recipe)
 
         response = client.get("/images/results/", {"page": "1"})
 
@@ -92,13 +55,8 @@ class TestGalleryPagination:
 
     @override_settings(GALLERY_PAGE_SIZE=2)
     def test_second_page_contains_remaining_images(self, client):
-        recipe = FujifilmRecipe.objects.create(name="Test Recipe", **_RECIPE_DEFAULTS)
-        for i in range(3):
-            Image.objects.create(
-                filename=f"img{i}.jpg",
-                filepath=f"/shots/img{i}.jpg",
-                fujifilm_recipe=recipe,
-            )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
+        ImageFactory.create_batch(3, fujifilm_recipe=recipe)
 
         response = client.get("/images/results/", {"page": "2"})
 
@@ -108,44 +66,31 @@ class TestGalleryPagination:
 
     @override_settings(GALLERY_PAGE_SIZE=2)
     def test_pagination_controls_shown_when_multiple_pages(self, client):
-        recipe = FujifilmRecipe.objects.create(name="Test Recipe", **_RECIPE_DEFAULTS)
-        for i in range(3):
-            Image.objects.create(
-                filename=f"img{i}.jpg",
-                filepath=f"/shots/img{i}.jpg",
-                fujifilm_recipe=recipe,
-            )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
+        ImageFactory.create_batch(3, fujifilm_recipe=recipe)
 
         response = client.get("/images/results/")
 
         soup = BeautifulSoup(response.content, "html.parser")
-        assert soup.find(class_="pagination") is not None
+        assert soup.find(id="gallery-pagination") is not None
         assert soup.find(class_="pagination-next") is not None
         assert soup.find(class_="pagination-prev") is None  # no prev on first page
 
     @override_settings(GALLERY_PAGE_SIZE=2)
     def test_pagination_controls_hidden_when_single_page(self, client):
-        recipe = FujifilmRecipe.objects.create(name="Test Recipe", **_RECIPE_DEFAULTS)
-        Image.objects.create(
-            filename="only.jpg",
-            filepath="/shots/only.jpg",
-            fujifilm_recipe=recipe,
-        )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
+        ImageFactory(fujifilm_recipe=recipe)
 
         response = client.get("/images/results/")
 
         soup = BeautifulSoup(response.content, "html.parser")
-        assert soup.find(class_="pagination") is None
+        assert soup.find(class_="pagination-next") is None
+        assert soup.find(class_="pagination-prev") is None
 
     @override_settings(GALLERY_PAGE_SIZE=2)
     def test_out_of_range_page_returns_last_page(self, client):
-        recipe = FujifilmRecipe.objects.create(name="Test Recipe", **_RECIPE_DEFAULTS)
-        for i in range(3):
-            Image.objects.create(
-                filename=f"img{i}.jpg",
-                filepath=f"/shots/img{i}.jpg",
-                fujifilm_recipe=recipe,
-            )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
+        ImageFactory.create_batch(3, fujifilm_recipe=recipe)
 
         response = client.get("/images/results/", {"page": "999"})
 
@@ -162,30 +107,16 @@ class TestFavoritesFirstToggle:
     newer image must come first."""
 
     def setup_method(self):
-        recipe = FujifilmRecipe.objects.create(
-            name="Test Recipe",
-            film_simulation="Classic Chrome",
-            dynamic_range="DR Auto",
-            d_range_priority="Off",
-            grain_roughness="Off",
-            grain_size="Off",
-            color_chrome_effect="Off",
-            color_chrome_fx_blue="Off",
-            white_balance="Auto",
-            white_balance_red=0,
-            white_balance_blue=0,
-        )
+        recipe = FujifilmRecipeFactory(name="Test Recipe")
         now = timezone.now()
-        Image.objects.create(
+        ImageFactory(
             filename="favorite_older.jpg",
-            filepath="/shots/favorite_older.jpg",
             fujifilm_recipe=recipe,
             is_favorite=True,
             taken_at=now - timezone.timedelta(days=1),
         )
-        Image.objects.create(
+        ImageFactory(
             filename="nonfavorite_newer.jpg",
-            filepath="/shots/nonfavorite_newer.jpg",
             fujifilm_recipe=recipe,
             is_favorite=False,
             taken_at=now,

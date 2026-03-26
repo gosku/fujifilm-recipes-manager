@@ -1,26 +1,13 @@
 import pytest
 from bs4 import BeautifulSoup
 
-from src.data.models import FujifilmExif, FujifilmRecipe, Image
-
-_RECIPE_DEFAULTS = dict(
-    film_simulation="Classic Chrome",
-    dynamic_range="DR Auto",
-    d_range_priority="Off",
-    grain_roughness="Off",
-    grain_size="Off",
-    color_chrome_effect="Off",
-    color_chrome_fx_blue="Off",
-    white_balance="Auto",
-    white_balance_red=0,
-    white_balance_blue=0,
-)
+from tests.factories import FujifilmExifFactory, FujifilmRecipeFactory, ImageFactory
 
 
 @pytest.mark.django_db
 class TestImageDetailView:
     def test_returns_200_for_existing_image(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         assert response.status_code == 200
 
@@ -29,7 +16,7 @@ class TestImageDetailView:
         assert response.status_code == 404
 
     def test_shows_image_element_with_image_file_url(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         img = soup.find("img", class_="detail-image")
@@ -37,7 +24,7 @@ class TestImageDetailView:
         assert f"/images/file/{image.id}/" in img["src"]
 
     def test_shows_close_button_linking_to_gallery(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         close_btn = soup.find(class_="detail-close")
@@ -45,7 +32,7 @@ class TestImageDetailView:
         assert close_btn["href"] == "/images/"
 
     def test_close_button_is_in_top_right(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         # Close button must exist inside the detail panel header
@@ -54,7 +41,7 @@ class TestImageDetailView:
         assert header.find(class_="detail-close") is not None
 
     def test_shows_filename_in_key_info_section(self, client):
-        image = Image.objects.create(filename="holiday.jpg", filepath="/shots/holiday.jpg")
+        image = ImageFactory(filename="holiday.jpg")
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         key_info = soup.find(class_="detail-key-info")
@@ -62,22 +49,15 @@ class TestImageDetailView:
         assert "holiday.jpg" in key_info.get_text()
 
     def test_shows_iso_in_key_info_section(self, client):
-        image = Image.objects.create(
-            filename="photo.jpg", filepath="/shots/photo.jpg", iso="3200"
-        )
+        image = ImageFactory(iso="3200")
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         key_info = soup.find(class_="detail-key-info")
         assert "3200" in key_info.get_text()
 
     def test_shows_exposure_compensation_in_exif_section(self, client):
-        exif = FujifilmExif.objects.create()
-        image = Image.objects.create(
-            filename="photo.jpg",
-            filepath="/shots/photo.jpg",
-            exposure_compensation="+1/3 EV",
-            fujifilm_exif=exif,
-        )
+        exif = FujifilmExifFactory()
+        image = ImageFactory(exposure_compensation="+1/3 EV", fujifilm_exif=exif)
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         exif_section = soup.find(class_="detail-exif")
@@ -85,12 +65,7 @@ class TestImageDetailView:
         assert "+1/3 EV" in exif_section.get_text()
 
     def test_shows_camera_info_in_key_info_section(self, client):
-        image = Image.objects.create(
-            filename="photo.jpg",
-            filepath="/shots/photo.jpg",
-            camera_make="FUJIFILM",
-            camera_model="X-T5",
-        )
+        image = ImageFactory(camera_make="FUJIFILM", camera_model="X-T5")
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         key_info = soup.find(class_="detail-key-info")
@@ -98,10 +73,8 @@ class TestImageDetailView:
         assert "X-T5" in key_info.get_text()
 
     def test_shows_recipe_section_when_recipe_exists(self, client):
-        recipe = FujifilmRecipe.objects.create(name="My Recipe", **_RECIPE_DEFAULTS)
-        image = Image.objects.create(
-            filename="photo.jpg", filepath="/shots/photo.jpg", fujifilm_recipe=recipe
-        )
+        recipe = FujifilmRecipeFactory(name="My Recipe", film_simulation="Classic Chrome")
+        image = ImageFactory(fujifilm_recipe=recipe)
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         recipe_section = soup.find(class_="detail-recipe")
@@ -109,19 +82,14 @@ class TestImageDetailView:
         assert "Classic Chrome" in recipe_section.get_text()
 
     def test_recipe_section_shows_all_recipe_fields(self, client):
-        recipe = FujifilmRecipe.objects.create(
+        recipe = FujifilmRecipeFactory(
             name="My Recipe",
-            **{
-                **_RECIPE_DEFAULTS,
-                "grain_roughness": "Strong",
-                "grain_size": "Large",
-                "color_chrome_effect": "Strong",
-                "color_chrome_fx_blue": "Weak",
-            },
+            grain_roughness="Strong",
+            grain_size="Large",
+            color_chrome_effect="Strong",
+            color_chrome_fx_blue="Weak",
         )
-        image = Image.objects.create(
-            filename="photo.jpg", filepath="/shots/photo.jpg", fujifilm_recipe=recipe
-        )
+        image = ImageFactory(fujifilm_recipe=recipe)
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         recipe_section = soup.find(class_="detail-recipe")
@@ -130,16 +98,14 @@ class TestImageDetailView:
         assert "Large" in text
 
     def test_hides_recipe_section_when_no_recipe(self, client):
-        image = Image.objects.create(filename="photo.jpg", filepath="/shots/photo.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         assert soup.find(class_="detail-recipe") is None
 
     def test_shows_exif_section_when_exif_exists(self, client):
-        exif = FujifilmExif.objects.create(film_simulation="Velvia", af_mode="Single Point")
-        image = Image.objects.create(
-            filename="photo.jpg", filepath="/shots/photo.jpg", fujifilm_exif=exif
-        )
+        exif = FujifilmExifFactory(film_simulation="Velvia", af_mode="Single Point")
+        image = ImageFactory(fujifilm_exif=exif)
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         exif_section = soup.find(class_="detail-exif")
@@ -147,13 +113,13 @@ class TestImageDetailView:
         assert "Single Point" in exif_section.get_text()
 
     def test_hides_exif_section_when_no_exif(self, client):
-        image = Image.objects.create(filename="photo.jpg", filepath="/shots/photo.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         assert soup.find(class_="detail-exif") is None
 
     def test_layout_has_two_columns(self, client):
-        image = Image.objects.create(filename="photo.jpg", filepath="/shots/photo.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/")
         soup = BeautifulSoup(response.content, "html.parser")
         assert soup.find(class_="detail-image-col") is not None
@@ -163,7 +129,7 @@ class TestImageDetailView:
 @pytest.mark.django_db
 class TestGalleryThumbnailsLinkToDetail:
     def test_gallery_thumbnails_link_to_detail_view(self, client):
-        image = Image.objects.create(filename="photo.jpg", filepath="/shots/photo.jpg")
+        image = ImageFactory()
         response = client.get("/images/results/")
         soup = BeautifulSoup(response.content, "html.parser")
         card = soup.find(class_="image-card")
@@ -173,7 +139,7 @@ class TestGalleryThumbnailsLinkToDetail:
         assert f"/images/{image.id}/" in link["href"]
 
     def test_gallery_thumbnail_img_is_inside_detail_link(self, client):
-        image = Image.objects.create(filename="photo.jpg", filepath="/shots/photo.jpg")
+        ImageFactory()
         response = client.get("/images/results/")
         soup = BeautifulSoup(response.content, "html.parser")
         link = soup.find("a", class_="detail-link")

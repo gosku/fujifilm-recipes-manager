@@ -1,13 +1,13 @@
 import pytest
 from bs4 import BeautifulSoup
 
-from src.data.models import Image
+from tests.factories import ImageFactory
 
 
 @pytest.mark.django_db
 class TestFavoriteButtonInDetailView:
     def test_favorite_button_is_in_detail_header(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
 
         response = client.get(f"/images/{image.id}/")
 
@@ -17,9 +17,7 @@ class TestFavoriteButtonInDetailView:
         assert header.find(class_="detail-favorite") is not None
 
     def test_non_favorite_image_shows_empty_star(self, client):
-        image = Image.objects.create(
-            filename="test.jpg", filepath="/shots/test.jpg", is_favorite=False
-        )
+        image = ImageFactory(is_favorite=False)
 
         response = client.get(f"/images/{image.id}/")
 
@@ -29,9 +27,7 @@ class TestFavoriteButtonInDetailView:
         assert "\u2606" in btn.get_text()  # ☆ empty star
 
     def test_favorite_image_shows_filled_star(self, client):
-        image = Image.objects.create(
-            filename="test.jpg", filepath="/shots/test.jpg", is_favorite=True
-        )
+        image = ImageFactory(is_favorite=True)
 
         response = client.get(f"/images/{image.id}/")
 
@@ -41,9 +37,7 @@ class TestFavoriteButtonInDetailView:
         assert "\u2605" in btn.get_text()  # ★ filled star
 
     def test_clicking_favorite_button_then_page_shows_filled_star(self, client):
-        image = Image.objects.create(
-            filename="test.jpg", filepath="/shots/test.jpg", is_favorite=False
-        )
+        image = ImageFactory(is_favorite=False)
 
         client.post(f"/images/{image.id}/toggle-favorite/")
 
@@ -54,9 +48,7 @@ class TestFavoriteButtonInDetailView:
         assert "\u2605" in btn.get_text()  # ★ filled star
 
     def test_clicking_favorite_button_twice_then_page_shows_empty_star(self, client):
-        image = Image.objects.create(
-            filename="test.jpg", filepath="/shots/test.jpg", is_favorite=False
-        )
+        image = ImageFactory(is_favorite=False)
 
         client.post(f"/images/{image.id}/toggle-favorite/")
         client.post(f"/images/{image.id}/toggle-favorite/")
@@ -72,6 +64,6 @@ class TestFavoriteButtonInDetailView:
         assert response.status_code == 404
 
     def test_toggle_endpoint_rejects_get_request(self, client):
-        image = Image.objects.create(filename="test.jpg", filepath="/shots/test.jpg")
+        image = ImageFactory()
         response = client.get(f"/images/{image.id}/toggle-favorite/")
         assert response.status_code == 405
