@@ -76,8 +76,12 @@ class FakePTPDevice:
             transport failure on a specific property.
         default_get_error:
             Exception raised for *any* get call whose code is not in
-            ``get_errors``.  Use this to simulate a full camera disconnect
-            during the verification phase without enumerating every code.
+            ``get_errors``.  Affects both int and string reads.
+        default_int_get_error:
+            Exception raised for any *integer* get call (get_property_int /
+            get_property_int16) whose code is not in ``get_errors``.  String
+            reads are unaffected.  Use this to simulate the verification phase
+            failing while the initial slot-name read still succeeds.
         int_read_overrides:
             Mapping of property code → int value returned on every read of
             that code, regardless of what was written to the store.  Use this
@@ -103,6 +107,7 @@ class FakePTPDevice:
         ping_fails: bool = False,
         get_errors: dict[int, Exception] | None = None,
         default_get_error: Exception | None = None,
+        default_int_get_error: Exception | None = None,
         int_read_overrides: dict[int, int] | None = None,
         set_errors: dict[int, Exception] | None = None,
         set_rejection_codes: dict[int, int] | None = None,
@@ -113,6 +118,7 @@ class FakePTPDevice:
         self._ping_fails = ping_fails
         self._get_errors: dict[int, Exception] = dict(get_errors or {})
         self._default_get_error = default_get_error
+        self._default_int_get_error = default_int_get_error
         self._int_read_overrides: dict[int, int] = dict(int_read_overrides or {})
         self._set_errors: dict[int, Exception] = dict(set_errors or {})
         self._set_rejection_codes: dict[int, int] = dict(set_rejection_codes or {})
@@ -141,6 +147,8 @@ class FakePTPDevice:
     def get_property_int(self, code: int) -> int:
         if code in self._get_errors:
             raise self._get_errors[code]
+        if self._default_int_get_error is not None:
+            raise self._default_int_get_error
         if self._default_get_error is not None:
             raise self._default_get_error
         if code in self._int_read_overrides:

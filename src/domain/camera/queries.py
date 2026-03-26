@@ -17,6 +17,7 @@ import attrs
 from src.data.camera import constants
 from src.domain.camera import events
 from src.domain.camera.ptp_device import CameraConnectionError, PTPDevice
+from src.domain.camera.validation import validate_recipe_for_camera
 from src.domain.images.dataclasses import FujifilmRecipeData
 
 # ---------------------------------------------------------------------------
@@ -322,6 +323,8 @@ def recipe_to_ptp_values(recipe: FujifilmRecipeData) -> RecipePTPValues:
         - Monochromatic tuning (warm/cool, magenta/green) write encoding unknown;
           left as None until confirmed.
     """
+    validate_recipe_for_camera(recipe)
+
     # --- Film simulation ---
     film_sim = constants.FILM_SIMULATION_TO_PTP.get(recipe.film_simulation)
 
