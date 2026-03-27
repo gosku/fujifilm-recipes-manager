@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push recipe to camera</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 360px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .recipe-name {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #2db37a;
+      margin-bottom: 0.75rem;
+    }
+
+    .slot-form { margin-bottom: 0.5rem; }
+
+    .slot-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      font-size: 0.95rem;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .slot-btn:hover { border-color: #2db37a; background: #f0faf5; }
+
+    .slot-label {
+      font-weight: 700;
+      color: #2db37a;
+      min-width: 2.5rem;
+    }
+
+    .slot-name { color: #222; flex: 1; }
+    .slot-film-sim { font-size: 0.8rem; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="card-title">Push recipe to camera</h1>
+    <p class="recipe-name">{{ recipe.name }}</p>
+
+    <p class="section-label">Select import slot</p>
+
+    {% for slot in slots %}
+    <form class="slot-form" method="post" action="{% url 'push-recipe-to-camera' recipe_id=recipe.id slot=slot.label %}">
+      {% csrf_token %}
+      <button type="submit" class="slot-btn">
+        <span class="slot-label">{{ slot.label }}</span>
+        <span class="slot-name">{{ slot.name|default:"—" }}</span>
+        <span class="slot-film-sim">{{ slot.film_sim }}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+</body>
+</html>

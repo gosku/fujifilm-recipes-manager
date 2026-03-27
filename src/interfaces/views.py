@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.decorators.http import require_POST
 
+from src.application.usecases.camera.get_camera_slots import get_camera_slots
 from src.application.usecases.camera.push_recipe import RecipeWriteError, push_recipe_to_camera
 from src.data.models import FujifilmRecipe, Image
 from src.domain.camera.ptp_device import CameraConnectionError, CameraWriteError
@@ -155,6 +156,27 @@ def toggle_favorite_view(request, image_id):
 
 
 _SLOT_TO_INDEX = {"C1": 1, "C2": 2, "C3": 3, "C4": 4, "C5": 5, "C6": 6, "C7": 7}
+
+
+class SelectSlotView(View):
+    def dispatch(self, request, *args, **kwargs):
+        recipe = get_object_or_404(FujifilmRecipe, pk=kwargs["recipe_id"])
+        if not recipe.name:
+            raise Http404
+        self.recipe = recipe
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, recipe_id):
+        try:
+            states = get_camera_slots()
+        except CameraConnectionError as e:
+            return JsonResponse({"error": f"Camera connection error: {e}"}, status=503)
+        except CameraWriteError as e:
+            return JsonResponse({"error": f"Camera write error: {e}"}, status=500)
+        except Exception:
+            return JsonResponse({"error": "Unexpected error happened"}, status=500)
+        slots = [{"label": f"C{s.index}", "name": s.name, "film_sim": s.film_sim_name} for s in states]
+        return render(request, "recipes/select_slot.html", {"recipe": self.recipe, "slots": slots})
 
 
 class PushRecipeToCameraView(View):
