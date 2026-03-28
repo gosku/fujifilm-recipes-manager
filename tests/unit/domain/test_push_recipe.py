@@ -52,6 +52,7 @@ class TestPushRecipeVerification:
         _push()  # no exception = all properties written and verified
 
     def test_verification_detects_mismatched_readback(self, settings):
+        settings.CAMERA_VERIFY_WRITES = True
         settings.PTP_DEVICE = lambda: FakePTPDevice(int_read_overrides={0xD192: 99})
         with pytest.raises(RecipeWriteError) as exc_info:
             _push(recipe=_make_recipe(film_simulation="Provia"))
@@ -66,6 +67,7 @@ class TestPushRecipeVerification:
         assert "SlotName" in exc_info.value.failed_properties
 
     def test_slot_name_mismatch_reported_in_failed_properties(self, settings, caplog):
+        settings.CAMERA_VERIFY_WRITES = True
         settings.PTP_DEVICE = lambda: FakePTPDevice(
             str_read_overrides={constants.PROP_SLOT_NAME: "Wrong Name"},
         )
@@ -75,6 +77,7 @@ class TestPushRecipeVerification:
         assert any("Verification failed" in rec.message for rec in caplog.records)
 
     def test_verification_handles_read_error_gracefully(self, settings):
+        settings.CAMERA_VERIFY_WRITES = True
         settings.PTP_DEVICE = lambda: FakePTPDevice(
             default_int_get_error=CameraConnectionError("USB read failed"),
         )
