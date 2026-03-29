@@ -96,6 +96,11 @@ Python 3.11+ is required.
 - **macOS:** `brew install memcached && brew services start memcached`
 - **Ubuntu:** `sudo apt install memcached && sudo systemctl start memcached`
 
+#### exiftool (required for image processing with `process_images`)
+
+- **macOS:** `brew install exiftool`
+- **Ubuntu:** `sudo apt install libimage-exiftool-perl`
+
 #### RabbitMQ (only required for async image processing with Celery)
 
 - **macOS:** `brew install rabbitmq && brew services start rabbitmq`

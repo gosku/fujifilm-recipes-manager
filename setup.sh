@@ -136,7 +136,19 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. RabbitMQ (optional — only needed for async image processing)
+# 5. exiftool (required for image processing)
+# ══════════════════════════════════════════════════════════════════════════════
+info "Checking exiftool..."
+if command -v exiftool &>/dev/null; then
+    skip "exiftool already installed"
+elif [[ "$OS" == "macos" ]]; then
+    brew_install exiftool
+else
+    apt_install libimage-exiftool-perl
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 6. RabbitMQ (optional — only needed for async image processing)
 # ══════════════════════════════════════════════════════════════════════════════
 info "Checking RabbitMQ..."
 if [[ "$OS" == "macos" ]]; then
