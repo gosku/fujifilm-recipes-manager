@@ -9,6 +9,13 @@ def pytest_configure(config):
     settings = django.conf.settings
     settings.CELERY_TASK_ALWAYS_EAGER = True
     settings.CELERY_TASK_EAGER_PROPAGATES = True
+    # Zero out all camera I/O delays so tests run at full speed.
+    settings.CAMERA_POST_READ_DELAY_S   = 0
+    settings.CAMERA_PRE_WRITE_DELAY_S   = 0
+    settings.CAMERA_POST_WRITE_DELAY_S  = 0
+    settings.CAMERA_POST_CURSOR_DELAY_S = 0
+    settings.CAMERA_INTER_SLOT_DELAY_S  = 0
+    settings.CAMERA_RETRY_BACKOFF_S     = 0
 
 
 @pytest.fixture(autouse=True)

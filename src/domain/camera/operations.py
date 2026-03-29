@@ -1,10 +1,8 @@
 """
 Domain-layer write helpers for Fujifilm PTP/USB camera communication.
 
-Timing requirements (must be respected to avoid camera errors):
-  - 50 ms BEFORE each property write
-  - 200 ms AFTER each property write
-  - A liveness ping AFTER each property write
+Timing is controlled via Django settings (CAMERA_PRE_WRITE_DELAY_S,
+CAMERA_POST_WRITE_DELAY_S, CAMERA_MAX_RETRIES, CAMERA_RETRY_BACKOFF_S).
 
 These helpers are consumed by the application-layer use case
 push_recipe_to_camera.
@@ -15,16 +13,12 @@ from __future__ import annotations
 import logging
 import time
 
+from django.conf import settings as _settings
+
 from src.domain.camera import events
 from src.domain.camera.ptp_device import CameraConnectionError, CameraWriteError, PTPDevice
 
 logger = logging.getLogger(__name__)
-
-PRE_WRITE_DELAY_S = 0.050    # 50 ms before each write
-POST_WRITE_DELAY_S = 0.200   # 200 ms after each write
-
-_WRITE_MAX_RETRIES = 3        # attempts per property before giving up
-_WRITE_RETRY_BACKOFF_S = 0.3  # base back-off; doubles each attempt (0.3 s, 0.6 s, 1.2 s)
 
 
 def set_prop_with_retry(device: PTPDevice, code: int, value: str | int) -> None:
@@ -47,9 +41,9 @@ def set_prop_with_retry(device: PTPDevice, code: int, value: str | int) -> None:
     write_failed = False
     failed_rc: int = 0
 
-    for attempt in range(1, _WRITE_MAX_RETRIES + 1):
+    for attempt in range(1, _settings.CAMERA_MAX_RETRIES + 1):
         if attempt > 1:
-            time.sleep(_WRITE_RETRY_BACKOFF_S * (2 ** (attempt - 2)))
+            time.sleep(_settings.CAMERA_RETRY_BACKOFF_S * (2 ** (attempt - 2)))
 
         camera_connection_error = False
 
@@ -65,7 +59,7 @@ def set_prop_with_retry(device: PTPDevice, code: int, value: str | int) -> None:
                 params={
                     "description": (
                         f"{prop_hex} = {value!r}: {exc} "
-                        f"(attempt {attempt}/{_WRITE_MAX_RETRIES})"
+                        f"(attempt {attempt}/{_settings.CAMERA_MAX_RETRIES})"
                     )
                 },
             )
@@ -92,7 +86,7 @@ def set_prop_with_retry(device: PTPDevice, code: int, value: str | int) -> None:
 
     if camera_connection_error:
         raise CameraConnectionError(
-            f"Camera unreachable after {_WRITE_MAX_RETRIES} attempts "
+            f"Camera unreachable after {_settings.CAMERA_MAX_RETRIES} attempts "
             f"writing {prop_hex} = {value!r}"
         )
     if write_failed:
@@ -109,7 +103,7 @@ def verify_written_properties(
     """
     mismatched: list[int] = []
     for code, expected in written:
-        time.sleep(PRE_WRITE_DELAY_S)
+        time.sleep(_settings.CAMERA_PRE_WRITE_DELAY_S)
         try:
             if isinstance(expected, str):
                 actual: str | int = device.get_property_string(code)

@@ -3,8 +3,6 @@ Integration tests for the get_camera_slots use case.
 
 Uses FakePTPDevice via settings.PTP_DEVICE (see conftest autouse fixture).
 """
-from unittest.mock import patch
-
 import pytest
 
 from src.application.usecases.camera.get_camera_slots import get_camera_slots
@@ -15,9 +13,7 @@ from tests.fakes import FakePTPDevice
 
 
 def _run():
-    """Run the use case with time.sleep patched out."""
-    with patch("src.application.usecases.camera.get_camera_slots.time.sleep"):
-        return get_camera_slots()
+    return get_camera_slots()
 
 
 # ---------------------------------------------------------------------------

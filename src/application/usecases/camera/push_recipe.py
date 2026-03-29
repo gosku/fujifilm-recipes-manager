@@ -9,12 +9,7 @@ from django.conf import settings
 
 from src.data.camera import constants
 from src.domain.camera.device_config import get_device
-from src.domain.camera.operations import (
-    POST_WRITE_DELAY_S,
-    PRE_WRITE_DELAY_S,
-    set_prop_with_retry,
-    verify_written_properties,
-)
+from src.domain.camera.operations import set_prop_with_retry, verify_written_properties
 from src.domain.camera.ptp_device import CameraConnectionError, CameraWriteError
 from src.domain.camera.queries import recipe_to_ptp_values
 from src.domain.images.dataclasses import FujifilmRecipeData
@@ -70,7 +65,7 @@ def push_recipe_to_camera(
                 f"Failed to set slot cursor to slot {slot_index} (rc={rc})"
             )
 
-        time.sleep(PRE_WRITE_DELAY_S)
+        time.sleep(settings.CAMERA_PRE_WRITE_DELAY_S)
 
         # --- Step 2: validate recipe and translate to PTP values ---
         # Validation happens here, before any writes, so an invalid recipe never
@@ -89,7 +84,7 @@ def push_recipe_to_camera(
         ]
 
         for code, value in all_writes:
-            time.sleep(PRE_WRITE_DELAY_S)   # 50 ms before write
+            time.sleep(settings.CAMERA_PRE_WRITE_DELAY_S)   # 50 ms before write
 
             try:
                 set_prop_with_retry(device, code, value)
@@ -101,7 +96,7 @@ def push_recipe_to_camera(
                 failed_codes.remove(code)
                 written.append((code, value))
 
-            time.sleep(POST_WRITE_DELAY_S)  # 200 ms after write
+            time.sleep(settings.CAMERA_POST_WRITE_DELAY_S)  # 200 ms after write
 
         # --- Step 4: verify written properties ---
         if settings.CAMERA_VERIFY_WRITES:

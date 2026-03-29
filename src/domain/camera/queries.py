@@ -15,6 +15,8 @@ import time
 import attrs
 
 from src.data.camera import constants
+from django.conf import settings as _settings
+
 from src.domain.camera import events
 from src.domain.camera.ptp_device import CameraConnectionError, PTPDevice
 from src.domain.camera.validation import validate_recipe_for_camera
@@ -170,7 +172,7 @@ def slot_states(device: PTPDevice, slot_count: int) -> list[SlotState]:
     states: list[SlotState] = []
     for idx in range(1, slot_count + 1):
         device.set_property_uint16(constants.PROP_SLOT_CURSOR, idx)
-        time.sleep(0.05)  # 50 ms between slots
+        time.sleep(_settings.CAMERA_POST_CURSOR_DELAY_S)  # 50 ms between slots
 
         try:
             name = _get_str(device, constants.PROP_SLOT_NAME)
@@ -202,7 +204,7 @@ def slot_recipe(device: PTPDevice, slot_index: int) -> FujifilmRecipeData:
         FujifilmRecipeData populated from the camera's current slot state.
     """
     device.set_property_uint16(constants.PROP_SLOT_CURSOR, slot_index)
-    time.sleep(0.05)  # 50 ms settle
+    time.sleep(_settings.CAMERA_POST_CURSOR_DELAY_S)  # 50 ms settle
 
     codes = constants.CUSTOM_SLOT_CODES
 

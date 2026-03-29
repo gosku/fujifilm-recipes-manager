@@ -15,10 +15,6 @@ def _recipe(**kwargs):
 
 @pytest.mark.django_db
 class TestPushRecipeToCameraView:
-    @pytest.fixture(autouse=True)
-    def _no_sleep(self, monkeypatch):
-        monkeypatch.setattr("time.sleep", lambda _: None)
-
     def test_success_returns_saved_message(self, client):
         recipe = _recipe(name="My Recipe")
 

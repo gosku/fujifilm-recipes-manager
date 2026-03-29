@@ -13,10 +13,6 @@ def _recipe(**kwargs):
 
 @pytest.mark.django_db
 class TestSelectSlotView:
-    @pytest.fixture(autouse=True)
-    def _no_sleep(self, monkeypatch):
-        monkeypatch.setattr("time.sleep", lambda _: None)
-
     def test_success_renders_recipe_name_and_slots(self, client):
         recipe = _recipe(name="Kodak Portra")
         # autouse fixture → FakePTPDevice(camera_name="X-S10") → 4 slots
@@ -91,10 +87,6 @@ class TestSelectSlotView:
 
 @pytest.mark.django_db
 class TestSelectSlotViewHtmx:
-    @pytest.fixture(autouse=True)
-    def _no_sleep(self, monkeypatch):
-        monkeypatch.setattr("time.sleep", lambda _: None)
-
     def _get(self, client, recipe_id):
         return client.get(f"/recipes/{recipe_id}/push/", HTTP_HX_REQUEST="true")
 

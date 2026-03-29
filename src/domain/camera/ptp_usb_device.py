@@ -30,6 +30,8 @@ import usb.core
 import usb.util
 
 from src.domain.camera import events as camera_events
+from django.conf import settings as _settings
+
 from src.domain.camera.ptp_device import CameraBusyError, CameraConnectionError
 
 if TYPE_CHECKING:
@@ -73,9 +75,10 @@ _RC_SESSION_ALREADY     = 0x201E  # treat as OK
 _USB_TIMEOUT_MS  = 5_000     # 5 s — camera can be slow to respond
 _READ_BUFFER     = 65_536    # max data to read in one call
 _SESSION_ID      = 1
-_PROP_READ_DELAY = 0.05      # 50 ms pause after each property read to avoid overwhelming the camera
-_PROP_MAX_RETRIES = 3        # retry transient USB timeouts before giving up
-_RETRY_BACKOFF   = 0.3       # seconds to wait before each retry (doubles per attempt)
+# Re-exported under legacy names so existing test imports keep working.
+_PROP_READ_DELAY  = _settings.CAMERA_POST_READ_DELAY_S
+_PROP_MAX_RETRIES = _settings.CAMERA_MAX_RETRIES
+_RETRY_BACKOFF    = _settings.CAMERA_RETRY_BACKOFF_S
 
 
 # ---------------------------------------------------------------------------

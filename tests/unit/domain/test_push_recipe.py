@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from src.application.usecases.camera.push_recipe import RecipeWriteError, push_recipe_to_camera
@@ -34,12 +32,10 @@ def _make_recipe(**overrides: object) -> FujifilmRecipeData:
 
 
 def _push(recipe=None, slot_index=1):
-    """Convenience wrapper that patches time.sleep and supplies defaults."""
-    with patch("src.application.usecases.camera.push_recipe.time.sleep"):
-        return push_recipe_to_camera(
-            recipe or _make_recipe(),
-            slot_index=slot_index,
-        )
+    return push_recipe_to_camera(
+        recipe or _make_recipe(),
+        slot_index=slot_index,
+    )
 
 
 # ---------------------------------------------------------------------------
