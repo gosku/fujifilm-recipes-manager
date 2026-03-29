@@ -87,7 +87,7 @@ PyUSB requires `libusb` as a native runtime binary (not a build tool — no comp
 
 On **Linux**, USB devices are owned by `root` by default. Users need either a udev rule or membership in the `plugdev` group to access the camera without `sudo`. A udev rule should be documented (and potentially shipped) as part of the camera feature setup.
 
-On **macOS**, libusb handles device access without additional configuration.
+On **macOS**, libusb handles device access without additional configuration, provided no other process is holding the camera interface. The system daemon `ptpcamerad` claims the interface when Photos.app or Image Capture is open — closing those apps releases it.
 
 ---
 
