@@ -197,6 +197,22 @@ class FujifilmRecipe(models.Model):
     monochromatic_color_warm_cool = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     monochromatic_color_magenta_green = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "film_simulation", "dynamic_range", "d_range_priority",
+                    "grain_roughness", "grain_size", "color_chrome_effect",
+                    "color_chrome_fx_blue", "white_balance", "white_balance_red",
+                    "white_balance_blue", "highlight", "shadow", "color",
+                    "sharpness", "high_iso_nr", "clarity",
+                    "monochromatic_color_warm_cool", "monochromatic_color_magenta_green",
+                ],
+                name="unique_fujifilm_recipe",
+                nulls_distinct=False,
+            )
+        ]
+
     # Factories
 
     @classmethod
