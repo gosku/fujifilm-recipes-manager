@@ -170,7 +170,7 @@ def toggle_favorite_view(request, image_id):
 _SLOT_TO_INDEX = {"C1": 1, "C2": 2, "C3": 3, "C4": 4, "C5": 5, "C6": 6, "C7": 7}
 
 
-class SelectSlotView(generic.View):
+class SelectSlot(generic.View):
     def dispatch(self, request, *args, **kwargs):
         recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         if not recipe.name:
@@ -191,7 +191,7 @@ class SelectSlotView(generic.View):
                 return shortcuts.render(request, "recipes/_select_slot_partial.html", {"recipe": self.recipe, "slots": [], "error": f"Camera write error: {e}"})
             return http.JsonResponse({"error": f"Camera write error: {e}"}, status=500)
         except Exception:
-            structlog.get_logger().exception("Unexpected error in SelectSlotView.get")
+            structlog.get_logger().exception("Unexpected error in SelectSlot.get")
             if is_htmx:
                 return shortcuts.render(request, "recipes/_select_slot_partial.html", {"recipe": self.recipe, "slots": [], "error": "Unexpected error happened"})
             return http.JsonResponse({"error": "Unexpected error happened"}, status=500)
@@ -200,7 +200,7 @@ class SelectSlotView(generic.View):
         return shortcuts.render(request, template, {"recipe": self.recipe, "slots": slots})
 
 
-class PushRecipeToCameraView(generic.View):
+class PushRecipeToCamera(generic.View):
     def dispatch(self, request, *args, **kwargs):
         self.recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         slot_index = _SLOT_TO_INDEX.get(kwargs["slot"])
@@ -231,7 +231,7 @@ class PushRecipeToCameraView(generic.View):
                 return shortcuts.render(request, "recipes/_push_result_partial.html", {"error": error, **error_ctx})
             return http.JsonResponse({"error": error}, status=500)
         except Exception:
-            structlog.get_logger().exception("Unexpected error in PushRecipeToCameraView.post")
+            structlog.get_logger().exception("Unexpected error in PushRecipeToCamera.post")
             error = "An unexpected error occurred. Please try again."
             if is_htmx:
                 return shortcuts.render(request, "recipes/_push_result_partial.html", {"error": error, **error_ctx})
@@ -241,7 +241,7 @@ class PushRecipeToCameraView(generic.View):
         return http.JsonResponse({"message": f"Recipe saved in {slot}"})
 
 
-class SetRecipeNameView(generic.View):
+class SetRecipeName(generic.View):
     def dispatch(self, request, *args, **kwargs):
         self.recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         return super().dispatch(request, *args, **kwargs)
@@ -258,7 +258,7 @@ class SetRecipeNameView(generic.View):
                 "submitted_name": name,
             })
         except Exception:
-            structlog.get_logger().exception("Unexpected error in SetRecipeNameView.post")
+            structlog.get_logger().exception("Unexpected error in SetRecipeName.post")
             return shortcuts.render(request, "recipes/_recipe_name_prompt.html", {
                 "recipe": self.recipe,
                 "error": "Something unexpected happened.",
