@@ -43,8 +43,8 @@ def _get_filtered_images(request) -> db_models.QuerySet:
         if values:
             qs = qs.filter(**{f"fujifilm_recipe__{field}__in": values})
     if request.GET.get("favorites_first", "1") == "1":
-        return qs.order_by("-is_favorite", "-taken_at")
-    return qs.order_by("-taken_at")
+        return qs.order_by("-is_favorite", "-taken_at", "id")
+    return qs.order_by("-taken_at", "id")
 
 
 def _get_recipe_options(request, active_field_filters: dict[str, list[str]]) -> dict:

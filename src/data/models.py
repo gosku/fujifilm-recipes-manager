@@ -1,14 +1,7 @@
-from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from src.domain.images import dataclasses as image_dataclasses
-
-
-def _validate_recipe_name(value):
-    if value and (len(value) > image_dataclasses.RECIPE_NAME_MAX_LEN or not value.isascii()):
-        raise ValidationError(
-            f"Recipe name must be ≤{image_dataclasses.RECIPE_NAME_MAX_LEN} ASCII characters."
-        )
 
 RECIPE_FIELDS = (
     "film_simulation",
@@ -78,7 +71,7 @@ RECIPE_FIELDS = (
 
 
 class FujifilmExif(models.Model):
-    name = models.CharField(max_length=image_dataclasses.RECIPE_NAME_MAX_LEN, blank=True, default="", validators=[_validate_recipe_name])
+    name = models.CharField(max_length=image_dataclasses.RECIPE_NAME_MAX_LEN, blank=True, default="")
 
     # Creative / recipe settings
     film_simulation = models.CharField(max_length=100, blank=True, default="")
@@ -177,7 +170,7 @@ class FujifilmExif(models.Model):
 
 
 class FujifilmRecipe(models.Model):
-    name = models.CharField(max_length=image_dataclasses.RECIPE_NAME_MAX_LEN, blank=True, default="", validators=[_validate_recipe_name])
+    name = models.CharField(max_length=image_dataclasses.RECIPE_NAME_MAX_LEN, blank=True, default="")
     film_simulation = models.CharField(max_length=100)
     dynamic_range = models.CharField(max_length=100)
     d_range_priority = models.CharField(max_length=50, default="Off")
@@ -237,7 +230,7 @@ class ImageQuerySet(models.QuerySet):
 class Image(models.Model):
     objects = models.Manager.from_queryset(ImageQuerySet)()
     filename = models.CharField(max_length=255)
-    filepath = models.CharField(max_length=1024, unique=True)
+    filepath = models.CharField(max_length=1024)
 
     # Camera info
     camera_make = models.CharField(max_length=100, blank=True, default="")
@@ -264,7 +257,7 @@ class Image(models.Model):
     # Date
     taken_at = models.DateTimeField(null=True, blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     fujifilm_exif = models.ForeignKey(
         FujifilmExif,
@@ -284,6 +277,11 @@ class Image(models.Model):
     is_favorite = models.BooleanField(default=False)
     in_album = models.BooleanField(default=False)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["filepath"], name="unique_image_filepath"),
+        ]
+
     # Factories
 
     @classmethod
@@ -298,11 +296,11 @@ class Image(models.Model):
 
     def set_as_favorite(self):
         self.is_favorite = True
-        self.save()
+        self.save(update_fields=["is_favorite"])
 
     def set_as_in_album(self):
         self.in_album = True
-        self.save()
+        self.save(update_fields=["in_album"])
 
     # Properties
 
