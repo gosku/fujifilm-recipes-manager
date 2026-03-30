@@ -256,7 +256,7 @@ class TestReadImageExif:
                 read_image_exif(image_path=image_path)
 
 
-class TestNormaliseWbFineTune:
+class TestNormalizeWbFineTune:
     def test_divides_values_by_20(self):
         assert _normalize_wb_fine_tune(raw="Red +60, Blue -100") == "Red +3, Blue -5"
 
