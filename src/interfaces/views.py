@@ -17,7 +17,6 @@ from src.domain.camera import ptp_device
 from src.domain.images import filter_queries
 from src.domain.images import operations as image_operations
 from src.domain.images.thumbnails import operations as thumbnail_operations
-from src.domain.images.thumbnails import queries as thumbnail_queries
 
 
 def _active_filters_from_request(request) -> dict[str, list[str]]:
@@ -270,7 +269,7 @@ class SetRecipeName(generic.View):
 
 
 def _resized_image_response(path: Path, width: int):
-    cache_path = thumbnail_operations.generate_thumbnail(original_path=path, width=width)
-    response = http.FileResponse(cache_path.open("rb"), content_type=thumbnail_queries.thumbnail_content_type(cache_path=cache_path))
+    cache_path, content_type = thumbnail_operations.generate_thumbnail_with_content_type(original_path=path, width=width)
+    response = http.FileResponse(cache_path.open("rb"), content_type=content_type)
     response["Cache-Control"] = "max-age=86400"
     return response

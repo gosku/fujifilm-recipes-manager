@@ -57,3 +57,9 @@ def generate_thumbnail(*, original_path: Path, width: int) -> Path:
 
         img.save(cache_path, format=fmt)
     return cache_path
+
+
+def generate_thumbnail_with_content_type(*, original_path: Path, width: int) -> tuple[Path, str]:
+    """Generate a thumbnail and return ``(cache_path, content_type)`` in one call."""
+    cache_path = generate_thumbnail(original_path=original_path, width=width)
+    return cache_path, thumbnail_queries.thumbnail_content_type(cache_path=cache_path)
