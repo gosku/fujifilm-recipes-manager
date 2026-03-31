@@ -7,12 +7,13 @@ import time
 
 from django.conf import settings
 
+from src.data import models
 from src.data.camera import constants
 from src.domain.camera import device_config
 from src.domain.camera import operations as camera_operations
 from src.domain.camera import ptp_device
 from src.domain.camera import queries as camera_queries
-from src.domain.images import dataclasses as image_dataclasses
+from src.domain.images import queries as image_queries
 
 _CODE_TO_PROP_NAME: dict[int, str] = {
     constants.PROP_SLOT_NAME: "SlotName",
@@ -32,7 +33,7 @@ class RecipeWriteError(Exception):
 
 
 def push_recipe_to_camera(
-    recipe: image_dataclasses.FujifilmRecipeData,
+    recipe: models.FujifilmRecipe,
     *,
     slot_index: int,
 ) -> None:
@@ -55,6 +56,7 @@ def push_recipe_to_camera(
         RecipeWriteError:      If one or more properties failed to write or verify.
                                ``exc.failed_properties`` lists the property names.
     """
+    recipe_data = image_queries.recipe_from_db(recipe=recipe)
     device = device_config.get_device()
     device.connect()
     try:
@@ -70,7 +72,7 @@ def push_recipe_to_camera(
         # --- Step 2: validate recipe and translate to PTP values ---
         # Validation happens here, before any writes, so an invalid recipe never
         # touches the camera.
-        ptp_items = camera_queries.recipe_to_ptp_values(recipe).items()
+        ptp_items = camera_queries.recipe_to_ptp_values(recipe_data).items()
 
         # --- Step 3: write all properties (slot name first, then recipe properties) ---
         failed_codes: list[int] = [constants.PROP_SLOT_NAME, *(code for code, _ in ptp_items)]
@@ -79,7 +81,7 @@ def push_recipe_to_camera(
         # Build the unified write sequence.  The slot name is a string property
         # and is written first; recipe properties are all integers.
         all_writes: list[tuple[int, str | int]] = [
-            (constants.PROP_SLOT_NAME, recipe.name),
+            (constants.PROP_SLOT_NAME, recipe_data.name),
             *ptp_items,
         ]
 

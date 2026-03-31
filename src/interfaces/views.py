@@ -16,7 +16,6 @@ from src.data import models
 from src.domain.camera import ptp_device
 from src.domain.images import filter_queries
 from src.domain.images import operations as image_operations
-from src.domain.images import queries as image_queries
 from src.domain.images.thumbnails import operations as thumbnail_operations
 from src.domain.images.thumbnails import queries as thumbnail_queries
 
@@ -214,10 +213,9 @@ class PushRecipeToCamera(generic.View):
 
     def post(self, request, recipe_id, slot):
         is_htmx = request.headers.get("HX-Request")
-        recipe_data = image_queries.recipe_from_db(recipe=self.recipe)
         error_ctx = {"recipe_id": recipe_id, "slot": slot}
         try:
-            push_recipe_uc.push_recipe_to_camera(recipe_data, slot_index=self.slot_index)
+            push_recipe_uc.push_recipe_to_camera(self.recipe, slot_index=self.slot_index)
         except push_recipe_uc.RecipeWriteError as e:
             error = f"Some settings couldn't be saved ({', '.join(e.failed_properties)}). Please try again."
             if is_htmx:

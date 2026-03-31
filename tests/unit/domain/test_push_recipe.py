@@ -1,34 +1,37 @@
 import pytest
+from decimal import Decimal
 
 from src.application.usecases.camera.push_recipe import RecipeWriteError, push_recipe_to_camera
+from src.data import models
 from src.data.camera import constants
 from src.domain.camera import events
 from src.domain.camera.ptp_device import CameraConnectionError, CameraWriteError
-from src.domain.images.dataclasses import FujifilmRecipeData
+from tests.factories import FujifilmRecipeFactory
 from tests.fakes import FakePTPDevice
 
 
-def _make_recipe(**overrides: object) -> FujifilmRecipeData:
+def _make_recipe(**overrides: object) -> models.FujifilmRecipe:
     defaults = dict(
         name="Test Recipe",
         film_simulation="Provia",
+        dynamic_range="DR100",
         d_range_priority="Off",
         grain_roughness="Off",
+        grain_size="Off",
         color_chrome_effect="Off",
         color_chrome_fx_blue="Off",
         white_balance="Auto",
         white_balance_red=0,
         white_balance_blue=0,
-        color="0",
-        sharpness="0",
-        high_iso_nr="0",
-        clarity="0",
-        dynamic_range="DR100",
-        highlight="0",
-        shadow="0",
+        color=Decimal("0"),
+        sharpness=Decimal("0"),
+        high_iso_nr=Decimal("0"),
+        clarity=Decimal("0"),
+        highlight=Decimal("0"),
+        shadow=Decimal("0"),
     )
     defaults.update(overrides)
-    return FujifilmRecipeData(**defaults)
+    return FujifilmRecipeFactory.build(**defaults)
 
 
 def _push(recipe=None, slot_index=1):
