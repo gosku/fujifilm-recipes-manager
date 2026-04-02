@@ -8,8 +8,8 @@ from tests.factories import FujifilmRecipeFactory, ImageFactory
 class TestRecipeFaceting:
     """Recipe filter participates in bidirectional faceted search."""
 
-    def test_field_filter_marks_non_matching_recipes_as_unavailable(self, client):
-        """Selecting film_simulation=Provia should mark Velvia-only recipes as unavailable."""
+    def test_field_filter_hides_non_matching_recipes(self, client):
+        """Selecting film_simulation=Provia should hide Velvia-only recipes from the dropdown."""
         recipe_provia = FujifilmRecipeFactory(name="Provia Recipe", film_simulation="Provia")
         recipe_velvia = FujifilmRecipeFactory(name="Velvia Recipe", film_simulation="Velvia")
         ImageFactory.create_batch(51, fujifilm_recipe=recipe_provia)
@@ -21,12 +21,8 @@ class TestRecipeFaceting:
         soup = BeautifulSoup(response.content, "html.parser")
         provia_option = soup.find("option", {"value": str(recipe_provia.id)})
         velvia_option = soup.find("option", {"value": str(recipe_velvia.id)})
-        # Provia recipe has matching images: available, no data-unavailable
         assert provia_option is not None
-        assert provia_option.get("data-unavailable") is None
-        # Velvia recipe has no matching images: still shown (it's named) but marked unavailable
-        assert velvia_option is not None
-        assert velvia_option.get("data-unavailable") == "true"
+        assert velvia_option is None
 
     def test_recipe_selection_narrows_field_options(self, client):
         """Selecting a recipe should restrict field filter options to that recipe's images."""
@@ -68,14 +64,14 @@ class TestRecipeFaceting:
         assert recipe_option is not None
         assert "(3)" in recipe_option.text
 
-    def test_unavailable_recipe_marked_with_data_attribute(self, client):
-        """A selected recipe that has no images matching field filters gets data-unavailable."""
+    def test_selected_recipe_still_shown_when_images_unavailable(self, client):
+        """A selected recipe with no matching field-filter images is still shown so it can be deselected."""
         recipe_provia = FujifilmRecipeFactory(name="Provia Recipe", film_simulation="Provia")
         recipe_velvia = FujifilmRecipeFactory(name="Velvia Recipe", film_simulation="Velvia")
         ImageFactory.create_batch(51, fujifilm_recipe=recipe_provia)
         ImageFactory.create_batch(51, fujifilm_recipe=recipe_velvia)
 
-        # Select Velvia recipe but filter by Provia film sim → Velvia recipe becomes unavailable
+        # Select Velvia recipe but filter by Provia film sim → Velvia recipe has no matching images
         response = client.get(
             f"/images/?recipe_id={recipe_velvia.id}&film_simulation=Provia"
         )
@@ -83,7 +79,7 @@ class TestRecipeFaceting:
         soup = BeautifulSoup(response.content, "html.parser")
         velvia_option = soup.find("option", {"value": str(recipe_velvia.id)})
         assert velvia_option is not None
-        assert velvia_option.get("data-unavailable") == "true"
+        assert velvia_option.has_attr("selected")
 
 
 @pytest.mark.django_db
