@@ -20,7 +20,7 @@ class TestRatingWidgetInDetailView:
 
     @override_settings(IMAGE_MAX_RATING=5)
     def test_unrated_image_shows_no_active_stars(self, client):
-        image = ImageFactory(rating=None)
+        image = ImageFactory(rating=0)
 
         response = client.get(f"/images/{image.id}/")
 
@@ -49,7 +49,7 @@ class TestRatingWidgetInDetailView:
 
     @override_settings(IMAGE_MAX_RATING=5)
     def test_clicking_star_returns_widget_with_correct_active_stars(self, client):
-        image = ImageFactory(rating=None)
+        image = ImageFactory(rating=0)
 
         response = client.post(f"/images/{image.id}/set-rating/", data={"rating": 4})
 

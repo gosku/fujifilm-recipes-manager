@@ -1,4 +1,5 @@
 import pytest
+from django.test import override_settings
 
 from src.domain.images import events
 from src.domain.images.operations import set_image_rating
@@ -7,12 +8,14 @@ from tests.factories import ImageFactory
 
 @pytest.mark.django_db
 class TestSetImageRatingPersistence:
+    @override_settings(IMAGE_MAX_RATING=5)
     def test_persists_rating_to_db(self):
         image = ImageFactory()
         set_image_rating(image=image, rating=3)
         image.refresh_from_db()
         assert image.rating == 3
 
+    @override_settings(IMAGE_MAX_RATING=5)
     def test_publishes_image_rating_set_event(self, captured_logs):
         image = ImageFactory()
         set_image_rating(image=image, rating=4)

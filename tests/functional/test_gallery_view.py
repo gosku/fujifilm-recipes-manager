@@ -97,12 +97,12 @@ class TestClearFiltersButton:
         assert "film_simulation" not in href
         assert "recipe_id" not in href
 
-    def test_clear_button_preserves_favorites_first_preference(self, client):
-        response = client.get("/images/", {"favorites_first": "0"})
+    def test_clear_button_preserves_rating_first_preference(self, client):
+        response = client.get("/images/", {"rating_first": "0"})
 
         soup = BeautifulSoup(response.content, "html.parser")
         btn = soup.find(class_="clear-filters-btn")
-        assert "favorites_first=0" in btn["href"]
+        assert "rating_first=0" in btn["href"]
 
     def test_following_clear_button_shows_all_images(self, client):
         recipe_a = FujifilmRecipeFactory(film_simulation="Provia")
