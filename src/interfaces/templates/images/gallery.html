@@ -507,8 +507,31 @@
   }
   initRecipeSelects();
 
-  // Re-initialise after HTMX OOB-swaps the recipe filter into the DOM.
-  document.body.addEventListener('htmx:afterSettle', initRecipeSelects);
+  // When HTMX is about to OOB-swap the recipe filter, update TomSelect's option
+  // list in-place instead of replacing the DOM. This preserves the .ts-wrapper
+  // (selected pills, search input) and avoids any flicker or layout shift.
+  document.body.addEventListener('htmx:oobBeforeSwap', function (evt) {
+    if (!evt.detail.target || evt.detail.target.id !== 'recipe-filter') return;
+    var select = evt.detail.target.querySelector('.filter-select-search');
+    if (!select || !select.tomselect) return;
+    // If the new content has no <select>, let the DOM swap happen so the widget
+    // is removed when there are no options at all.
+    var newSelect = evt.detail.fragment.querySelector('select');
+    if (!newSelect) return;
+
+    var ts = select.tomselect;
+    var newOpts = Array.from(newSelect.querySelectorAll('option')).map(function (opt) {
+      return { value: opt.value, text: opt.textContent.trim() };
+    });
+    // clearOptions() skips options that are currently selected (in ts.items),
+    // so the pills stay intact without any setValue() call. Calling setValue()
+    // would internally clear then re-add items, firing a native change event on
+    // the underlying <select> that would trigger an unwanted second HTMX request.
+    ts.clearOptions();
+    ts.addOptions(newOpts);
+    ts.refreshOptions(false); // refresh dropdown list without opening it
+    evt.detail.shouldSwap = false; // cancel the DOM swap entirely
+  });
 
   // Rating-first toggle: persists in localStorage, syncs with URL param.
   (function () {
