@@ -9,7 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { display: flex; font-family: sans-serif; height: 100vh; overflow: hidden; }
+    body { display: flex; flex-direction: column; font-family: sans-serif; height: 100vh; overflow: hidden; }
+
+    .content-area { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
     .sidebar {
       width: 320px;
@@ -442,6 +444,10 @@
 </head>
 <body>
 
+{% include "_top_nav.html" with active_section="images" %}
+
+<div class="content-area">
+
 <aside class="sidebar">
   <h2>Filters</h2>
   <a href="{% url 'gallery' %}?rating_first={{ rating_first }}" class="clear-filters-btn">Clear all filters</a>
@@ -484,6 +490,8 @@
     </div>
   </div>
 </main>
+
+</div><!-- .content-area -->
 
 <div id="detail-overlay" hidden></div>
 <div id="slot-overlay" hidden></div>

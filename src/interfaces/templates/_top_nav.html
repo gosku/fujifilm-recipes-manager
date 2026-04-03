@@ -1,0 +1,45 @@
+<style>
+  .top-nav {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 1.5rem;
+    gap: 0.25rem;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+  }
+
+  .top-nav__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #555;
+    text-decoration: none;
+    cursor: default;
+  }
+
+  .top-nav__link[href] {
+    cursor: pointer;
+  }
+
+  .top-nav__link[href]:hover {
+    background: #f3f4f6;
+    color: #222;
+  }
+
+  .top-nav__link--active {
+    background: #f0fdf4;
+    color: #2db37a;
+    font-weight: 600;
+  }
+</style>
+
+<nav class="top-nav">
+  <a href="{% url 'gallery' %}" class="top-nav__link{% if active_section == 'images' %} top-nav__link--active{% endif %}">Images</a>
+  <a class="top-nav__link{% if active_section == 'recipes' %} top-nav__link--active{% endif %}">Recipes</a>
+  <a class="top-nav__link{% if active_section == 'camera' %} top-nav__link--active{% endif %}">Camera</a>
+</nav>
