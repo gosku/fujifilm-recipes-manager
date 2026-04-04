@@ -40,19 +40,33 @@ class TestBuildRecipeNetwork:
         assert result.graph_data.nodes == ()
         assert result.graph_data.edges == ()
 
-    def test_film_simulations_includes_all_distinct_values(self):
+    def test_film_simulations_includes_sims_with_multiple_recipes(self):
         FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Provia", grain_roughness="Strong")
         FujifilmRecipeFactory(film_simulation="Velvia")
+        FujifilmRecipeFactory(film_simulation="Velvia", grain_roughness="Strong")
 
         result = build_recipe_network(film_simulation="Provia")
 
         assert "Provia" in result.film_simulations
         assert "Velvia" in result.film_simulations
 
+    def test_film_simulations_excludes_sims_with_only_one_recipe(self):
+        FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Provia", grain_roughness="Strong")
+        FujifilmRecipeFactory(film_simulation="Velvia")
+
+        result = build_recipe_network(film_simulation="Provia")
+
+        assert "Velvia" not in result.film_simulations
+
     def test_film_simulations_is_sorted(self):
         FujifilmRecipeFactory(film_simulation="Velvia")
+        FujifilmRecipeFactory(film_simulation="Velvia", grain_roughness="Strong")
         FujifilmRecipeFactory(film_simulation="ACROS")
+        FujifilmRecipeFactory(film_simulation="ACROS", grain_roughness="Strong")
         FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Provia", grain_roughness="Strong")
 
         result = build_recipe_network(film_simulation="Velvia")
 

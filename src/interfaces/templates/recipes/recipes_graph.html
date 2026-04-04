@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recipe Network</title>
   <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
-  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
-  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { display: flex; flex-direction: column; font-family: sans-serif; height: 100vh; overflow: hidden; }
@@ -207,19 +205,73 @@
     return MIN_NODE_SIZE + t * (MAX_NODE_SIZE - MIN_NODE_SIZE);
   }
 
-  var LAYOUT = {
-    name: "dagre",
-    rankDir: "LR",
-    align: "UL",
-    ranker: "tight-tree",
-    nodeSep: 60,
-    rankSep: 120,
-    edgeSep: 10,
-    animate: true,
-    animationDuration: 500,
-    fit: true,
-    padding: 60,
-  };
+  var RING_SPACING = 45;
+  var RING_OFFSET  = 60; // minimum radius so distance-1 nodes clear the root node
+
+  // Radial tree layout: root at centre, children always placed outward within
+  // their parent's angular slice. Angular slices are proportional to subtree
+  // leaf count so the tree fills the circle evenly.
+  function buildRadialPositions(elements, rootId) {
+    var rootStr = String(rootId);
+    var nodeDistance = {};
+    var children = {};
+
+    elements.forEach(function (el) {
+      if (el.data && el.data.source === undefined) {
+        var id = String(el.data.id);
+        nodeDistance[id] = el.data.distance || 0;
+        children[id] = [];
+      }
+    });
+    elements.forEach(function (el) {
+      if (el.data && el.data.source !== undefined) {
+        var src = String(el.data.source);
+        var tgt = String(el.data.target);
+        if (children[src]) children[src].push(tgt);
+      }
+    });
+
+    // Leaf count drives how much angular arc each subtree gets.
+    var leafCount = {};
+    function countLeaves(id) {
+      if (leafCount[id] !== undefined) return leafCount[id];
+      var kids = children[id] || [];
+      if (kids.length === 0) { leafCount[id] = 1; return 1; }
+      var total = 0;
+      kids.forEach(function (c) { total += countLeaves(c); });
+      leafCount[id] = total;
+      return total;
+    }
+    countLeaves(rootStr);
+
+    var positions = {};
+    function place(id, startAngle, endAngle) {
+      var angle = (startAngle + endAngle) / 2;
+      var r = (nodeDistance[id] || 0) * RING_SPACING + (nodeDistance[id] ? RING_OFFSET : 0);
+      positions[id] = { x: r * Math.cos(angle), y: r * Math.sin(angle) };
+      var kids = children[id] || [];
+      var cursor = startAngle;
+      kids.forEach(function (kid) {
+        var end = cursor + (leafCount[kid] / leafCount[id]) * (endAngle - startAngle);
+        place(kid, cursor, end);
+        cursor = end;
+      });
+    }
+    place(rootStr, 0, 2 * Math.PI);
+    return positions;
+  }
+
+  function makePresetLayout(positions, onStop) {
+    return {
+      name: "preset",
+      positions: function (node) { return positions[node.data("id")]; },
+      fit: true,
+      padding: 60,
+      animate: true,
+      animationDuration: 600,
+      stop: onStop || function () {},
+    };
+  }
 
   var EDGE_STYLES = [
     {
@@ -280,8 +332,34 @@
         style: { "border-width": 3, "border-color": "#111" }
       }
     ]),
-    layout: LAYOUT,
+    layout: makePresetLayout(buildRadialPositions(INITIAL_ELEMENTS, ROOT_ID), applyRadialLabels),
   });
+
+  function applyRadialLabels() {
+    var centre = cy.getElementById(String(ROOT_ID)).position();
+    cy.nodes().forEach(function (node) {
+      var pos = node.position();
+      var dx = pos.x - centre.x;
+      var dy = pos.y - centre.y;
+      var len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1) {
+        node.style({ "text-valign": "bottom", "text-halign": "center", "text-margin-x": 0, "text-margin-y": 4 });
+        return;
+      }
+      var cos = dx / len;
+      var sin = dy / len;
+      // Use native valign/halign so Cytoscape places the label outside the node boundary.
+      var halign = Math.abs(cos) < 0.4 ? "center" : (cos > 0 ? "right" : "left");
+      var valign = Math.abs(sin) < 0.4 ? "center" : (sin > 0 ? "bottom" : "top");
+      var GAP = 6;
+      node.style({
+        "text-valign": valign,
+        "text-halign": halign,
+        "text-margin-x": Math.abs(cos) >= 0.4 ? cos * GAP : 0,
+        "text-margin-y": Math.abs(sin) >= 0.4 ? sin * GAP : 0,
+      });
+    });
+  }
 
   function applyNodeStyles(elements, rootId) {
     var maxImages = maxImageCount(elements);
@@ -337,7 +415,7 @@
         cy.elements().remove();
         cy.add(data.elements);
         applyNodeStyles(data.elements, ROOT_ID);
-        cy.layout(LAYOUT).run();
+        cy.layout(makePresetLayout(buildRadialPositions(data.elements, ROOT_ID), applyRadialLabels)).run();
       });
   });
 

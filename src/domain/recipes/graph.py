@@ -103,19 +103,22 @@ def build_film_sim_tree(
     all_recipes: list[models.FujifilmRecipe],
     image_counts: dict[int, int],
 ) -> FilmSimTreeData:
-    """Build a minimum spanning tree from *root* covering every recipe in *all_recipes*.
+    """Build a shortest-path spanning tree rooted at *root*.
 
-    Builds a shortest-path spanning tree rooted at *root*. Nodes are attached in
-    ascending order of their hamming distance from root (BFS order). For each node,
-    it connects to whichever already-in-tree recipe is closest by hamming distance.
+    Each node is connected to a parent such that the sum of edge distances along
+    the path from root to that node equals hamming_distance(root, node). This means
+    traversing any root→node path and summing its edge distances gives the true
+    Hamming distance — no artificial inflation from chaining via unrelated nodes.
 
-    Processing close nodes first means that when a distant node is attached, the
-    tree already contains nearby intermediate nodes for it to connect to — keeping
-    hop depth proportional to actual hamming distance from root and preventing the
-    long chains that a pure Prim's MST can produce.
+    Among all valid parents (those satisfying the shortest-path constraint), the one
+    that minimises the direct edge distance to the child is chosen, producing the
+    most chain-like structure when multiple valid parents exist.
 
-    Node `distance` = tree hop depth from root (0 for root, 1 for direct children, …).
-    Edge `distance` = actual hamming distance between the two connected recipes.
+    Nodes are processed in ascending dist(root, node) order so that all candidate
+    parents are already in the tree when a node is attached.
+
+    Node `distance` = hamming_distance(root, node).
+    Edge `distance` = hamming distance between the two directly connected nodes.
     """
     recipe_by_pk = {r.pk: r for r in all_recipes}
 
@@ -124,30 +127,46 @@ def build_film_sim_tree(
         for r in all_recipes
     }
 
-    # Process non-root recipes in ascending hamming-distance-from-root order
-    # so close nodes enter the tree before distant ones.
+    in_tree: set[int] = {root.pk}
+    parent_of: dict[int, int] = {}
+    edge_distances: dict[int, int] = {}
+
+    # Process non-root nodes in ascending dist-from-root order so every valid
+    # parent (dist d-k for some k≥1) is already in the tree.
     ordered = sorted(
         (r for r in all_recipes if r.pk != root.pk),
         key=lambda r: dist_from_root[r.pk],
     )
 
-    # in_tree maps pk → tree hop depth from root
-    in_tree: dict[int, int] = {root.pk: 0}
-    parent_of: dict[int, int] = {}
-    edge_distances: dict[int, int] = {}
-
     for recipe in ordered:
-        best_parent_pk = min(in_tree, key=lambda pk: hamming_distance(a=recipe, b=recipe_by_pk[pk]))
-        best_d = hamming_distance(a=recipe, b=recipe_by_pk[best_parent_pk])
-        in_tree[recipe.pk] = in_tree[best_parent_pk] + 1
+        d_to_root = dist_from_root[recipe.pk]
+        # Valid parents are in-tree nodes P where dist(root,P) + dist(P,recipe) == dist(root,recipe).
+        # Among those, pick the one with the smallest direct edge (dist(P, recipe)).
+        best_parent_pk: int | None = None
+        best_edge_d = d_to_root + 1  # sentinel — worse than any valid parent
+        for pk in in_tree:
+            edge_d = hamming_distance(a=recipe, b=recipe_by_pk[pk])
+            if dist_from_root[pk] + edge_d == d_to_root and edge_d < best_edge_d:
+                best_edge_d = edge_d
+                best_parent_pk = pk
+
+        # Fallback: no strictly valid parent (can happen when dist_from_root values
+        # don't form an exact chain). Attach to the tree node with minimum edge cost.
+        if best_parent_pk is None:
+            best_parent_pk = min(
+                in_tree, key=lambda pk: hamming_distance(a=recipe, b=recipe_by_pk[pk])
+            )
+            best_edge_d = hamming_distance(a=recipe, b=recipe_by_pk[best_parent_pk])
+
+        in_tree.add(recipe.pk)
         parent_of[recipe.pk] = best_parent_pk
-        edge_distances[recipe.pk] = best_d
+        edge_distances[recipe.pk] = best_edge_d
 
     nodes = tuple(
         FilmSimTreeNode(
             id=r.pk,
             label=r.name or f"#{r.pk}",
-            distance=in_tree[r.pk],
+            distance=dist_from_root[r.pk],
             image_count=image_counts.get(r.pk, 0),
         )
         for r in all_recipes

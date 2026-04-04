@@ -21,7 +21,7 @@ def build_recipe_network(*, film_simulation: str) -> RecipeNetworkResult:
     render a filter control.
     """
     recipes = recipe_queries.get_recipes_by_film_simulation(film_simulation=film_simulation)
-    film_simulations = tuple(recipe_queries.get_distinct_film_simulations())
+    film_simulations = tuple(recipe_queries.get_film_simulations_with_multiple_recipes())
 
     if not recipes:
         return RecipeNetworkResult(

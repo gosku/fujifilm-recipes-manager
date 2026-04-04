@@ -132,14 +132,15 @@ class TestRecipesGraphView:
         node = next(n for n in _nodes(response) if n["data"]["id"] == str(recipe.pk))
         assert node["data"]["label"] == f"#{recipe.pk}"
 
-    def test_film_simulations_context_contains_all_distinct_values(self, client):
+    def test_film_simulations_context_excludes_sims_with_only_one_recipe(self, client):
         FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Provia", grain_roughness="Strong")
         FujifilmRecipeFactory(film_simulation="Velvia")
 
         response = _get(client, film_sim="Provia")
 
         assert "Provia" in response.context["film_simulations"]
-        assert "Velvia" in response.context["film_simulations"]
+        assert "Velvia" not in response.context["film_simulations"]
 
     def test_active_film_simulation_context_matches_param(self, client):
         FujifilmRecipeFactory(film_simulation="Velvia")

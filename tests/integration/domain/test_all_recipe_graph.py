@@ -300,16 +300,15 @@ class TestBuildFilmSimTreeNodes:
         node = next(n for n in graph.nodes if n.id == root.pk)
         assert node.distance == 0
 
-    def test_direct_child_has_hop_depth_one(self):
+    def test_direct_child_has_distance_one(self):
         root = _recipe(film_simulation="Provia", grain_roughness="Off")
         other = _recipe(film_simulation="Provia", grain_roughness="Strong")
         graph = build_film_sim_tree(root=root, all_recipes=[root, other], image_counts={})
         node = next(n for n in graph.nodes if n.id == other.pk)
         assert node.distance == 1
 
-    def test_chained_node_has_hop_depth_two(self):
-        # root → n2 → n3: n3 is 1 step from n2, which is 1 step from root.
-        # Prim's attaches n2 first (closest to root), then n3 to n2.
+    def test_node_distance_equals_hamming_distance_from_root(self):
+        # node.distance must equal hamming_distance(root, node), not hop depth.
         root = _recipe(film_simulation="Provia", grain_roughness="Off", grain_size="Off")
         n2 = _recipe(film_simulation="Provia", grain_roughness="Strong", grain_size="Off")
         n3 = _recipe(film_simulation="Provia", grain_roughness="Strong", grain_size="Large")
@@ -319,7 +318,7 @@ class TestBuildFilmSimTreeNodes:
         assert hamming_distance(a=root, b=n3) == 2
         graph = build_film_sim_tree(root=root, all_recipes=[root, n2, n3], image_counts={})
         node = next(n for n in graph.nodes if n.id == n3.pk)
-        assert node.distance == 2
+        assert node.distance == 2  # hamming_distance(root, n3), not hop count
 
     def test_includes_nodes_at_any_distance_with_no_cutoff(self):
         # Create a recipe far from root (distance > 9, which was the old max).
@@ -421,3 +420,71 @@ class TestBuildFilmSimTreeEdges:
         graph = build_film_sim_tree(root=root, all_recipes=[root, child], image_counts={})
         edge = next(e for e in graph.edges if {e.source, e.target} == {root.pk, child.pk})
         assert edge.distance == 1
+
+    def test_shortest_path_constraint_produces_minimum_total_edge_weight(self):
+        # Each node's parent must satisfy dist(root,parent) + dist(parent,node) == dist(root,node).
+        # This guarantees the sum of edges along any root→node path equals the true
+        # Hamming distance, and the total edge weight is minimised.
+        #
+        #   root --3-- A --1-- B --1-- C   (total = 5)
+        #
+        root = _recipe(
+            film_simulation="Provia",
+            grain_roughness="Off", grain_size="Off", color_chrome_effect="Off",
+        )
+        # A differs from root by 3 fields
+        a = _recipe(
+            film_simulation="Provia",
+            grain_roughness="Strong", grain_size="Large", color_chrome_effect="Strong",
+        )
+        # B is 1 hop from A (color_chrome_fx_blue differs)
+        b = _recipe(
+            film_simulation="Provia",
+            grain_roughness="Strong", grain_size="Large", color_chrome_effect="Strong",
+            color_chrome_fx_blue="Strong",
+        )
+        # C is 1 hop from B (dynamic_range differs)
+        c = _recipe(
+            film_simulation="Provia",
+            grain_roughness="Strong", grain_size="Large", color_chrome_effect="Strong",
+            color_chrome_fx_blue="Strong", dynamic_range="DR200",
+        )
+        from src.domain.recipes.graph import hamming_distance
+        assert hamming_distance(a=root, b=a) == 3
+        assert hamming_distance(a=a, b=b) == 1
+        assert hamming_distance(a=b, b=c) == 1
+
+        # Supply recipes in an order that would trip up a BFS/distance-order algorithm.
+        graph = build_film_sim_tree(root=root, all_recipes=[root, a, c, b], image_counts={})
+
+        total_edge_weight = sum(e.distance for e in graph.edges)
+        assert total_edge_weight == 5  # 3 + 1 + 1, not 3 + 4 + 1 or worse
+
+    def test_path_sum_equals_hamming_distance_from_root(self):
+        # The core invariant: for every node, the sum of edge distances along its
+        # path to root must equal hamming_distance(root, node).
+        root = _recipe(film_simulation="Provia", grain_roughness="Off", grain_size="Off", color_chrome_effect="Off")
+        a = _recipe(film_simulation="Provia", grain_roughness="Strong", grain_size="Off", color_chrome_effect="Off")
+        b = _recipe(film_simulation="Provia", grain_roughness="Strong", grain_size="Large", color_chrome_effect="Off")
+        c = _recipe(film_simulation="Provia", grain_roughness="Strong", grain_size="Large", color_chrome_effect="Strong")
+
+        from src.domain.recipes.graph import hamming_distance
+        assert hamming_distance(a=root, b=a) == 1
+        assert hamming_distance(a=root, b=b) == 2
+        assert hamming_distance(a=root, b=c) == 3
+
+        graph = build_film_sim_tree(root=root, all_recipes=[root, a, b, c], image_counts={})
+
+        # Build parent map from edges to compute path sums.
+        parent_edge: dict[int, int] = {e.target: e.distance for e in graph.edges}
+        parent_of: dict[int, int] = {e.target: e.source for e in graph.edges}
+
+        def path_sum(pk: int) -> int:
+            total = 0
+            while pk in parent_of:
+                total += parent_edge[pk]
+                pk = parent_of[pk]
+            return total
+
+        for recipe in [a, b, c]:
+            assert path_sum(recipe.pk) == hamming_distance(a=root, b=recipe)

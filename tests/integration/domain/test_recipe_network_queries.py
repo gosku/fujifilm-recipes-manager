@@ -3,6 +3,7 @@ import pytest
 from src.domain.recipes.queries import (
     get_default_recipe_for_film_simulation,
     get_distinct_film_simulations,
+    get_film_simulations_with_multiple_recipes,
     get_image_counts_for_film_simulation,
     get_recipes_by_film_simulation,
 )
@@ -124,6 +125,49 @@ class TestGetDistinctFilmSimulations:
         FujifilmRecipeFactory(film_simulation="Provia")
 
         result = get_distinct_film_simulations()
+
+        assert isinstance(result, list)
+
+
+@pytest.mark.django_db
+class TestGetFilmSimulationsWithMultipleRecipes:
+    def test_excludes_film_simulations_with_only_one_recipe(self):
+        FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Velvia")
+        FujifilmRecipeFactory(film_simulation="Velvia", grain_roughness="Strong")
+
+        result = get_film_simulations_with_multiple_recipes()
+
+        assert result == ["Velvia"]
+
+    def test_excludes_film_simulations_with_zero_recipes(self):
+        FujifilmRecipeFactory(film_simulation="Velvia")
+        FujifilmRecipeFactory(film_simulation="Velvia", grain_roughness="Strong")
+
+        result = get_film_simulations_with_multiple_recipes()
+
+        assert "Provia" not in result
+
+    def test_returns_empty_list_when_no_recipes_exist(self):
+        result = get_film_simulations_with_multiple_recipes()
+
+        assert result == []
+
+    def test_result_is_sorted_alphabetically(self):
+        FujifilmRecipeFactory(film_simulation="Velvia")
+        FujifilmRecipeFactory(film_simulation="Velvia", grain_roughness="Strong")
+        FujifilmRecipeFactory(film_simulation="ACROS")
+        FujifilmRecipeFactory(film_simulation="ACROS", grain_roughness="Strong")
+
+        result = get_film_simulations_with_multiple_recipes()
+
+        assert result == sorted(result)
+
+    def test_returns_plain_list(self):
+        FujifilmRecipeFactory(film_simulation="Provia")
+        FujifilmRecipeFactory(film_simulation="Provia", grain_roughness="Strong")
+
+        result = get_film_simulations_with_multiple_recipes()
 
         assert isinstance(result, list)
 

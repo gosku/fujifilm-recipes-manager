@@ -118,6 +118,23 @@ def get_distinct_film_simulations() -> list[str]:
     )
 
 
+def get_film_simulations_with_multiple_recipes() -> list[str]:
+    """Return film simulations that have more than one recipe, sorted.
+
+    Film simulations with only one recipe produce a trivial (single-node) graph
+    and are excluded from graph filter controls.
+    """
+    from django.db.models import Count
+    return list(
+        models.FujifilmRecipe.objects
+        .values("film_simulation")
+        .annotate(count=Count("pk"))
+        .filter(count__gt=1)
+        .order_by("film_simulation")
+        .values_list("film_simulation", flat=True)
+    )
+
+
 def get_image_counts_for_film_simulation(*, film_simulation: str) -> dict[int, int]:
     """Return a mapping of recipe_id → image count for all recipes with the given film sim."""
     from django.db.models import Count
