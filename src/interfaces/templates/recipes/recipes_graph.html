@@ -198,19 +198,26 @@
       font-size: 0.78rem;
     }
 
+    .recipe-card__name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .recipe-card__name-row .recipe-card__name { margin-bottom: 0; flex: 1; }
+
     .recipe-card__btn {
-      display: block;
-      width: 100%;
-      padding: 0.45rem 0.75rem;
+      flex-shrink: 0;
+      padding: 0.3rem 0.6rem;
       background: #2db37a;
       color: #fff;
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       font-weight: 600;
       border: none;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      text-align: center;
-      margin-top: 0.5rem;
+      white-space: nowrap;
     }
 
     .recipe-card__btn:hover { background: #22956a; }
@@ -272,17 +279,19 @@
 
     <div class="recipe-card" id="recipe-card">
       <div class="recipe-card__section" id="card-root-section">
-        <div class="recipe-card__title">Root Recipe</div>
+        <div class="recipe-card__title">Recipe of Reference</div>
         <div class="recipe-card__name" id="card-root-name"></div>
         <div class="recipe-card__fields recipe-card__fields--two-col" id="card-root-fields"></div>
       </div>
       <div id="card-selected-section" style="display:none">
         <div class="recipe-card__section">
-          <div class="recipe-card__title">Selected Recipe</div>
-          <div class="recipe-card__name" id="card-selected-name"></div>
-          <div class="recipe-card__title" style="margin-top:0.6rem">Differences from Root</div>
+          <div class="recipe-card__title">Compare with Recipe</div>
+          <div class="recipe-card__name-row">
+            <div class="recipe-card__name" id="card-selected-name"></div>
+            <button class="recipe-card__btn" id="card-show-graph-btn">Go to this recipe graph</button>
+          </div>
+          <div class="recipe-card__title" style="margin-top:0.6rem">Differences</div>
           <div class="recipe-card__fields" id="card-root-diffs"></div>
-          <button class="recipe-card__btn" id="card-show-graph-btn">Show Recipe Graph</button>
         </div>
         <div class="recipe-card__section" id="card-delta-section" style="display:none">
           <div class="recipe-card__title">Delta Breakdown</div>
