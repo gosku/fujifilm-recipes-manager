@@ -3,6 +3,7 @@
 ## Functionality
 
 - [Web Interface](web_interface.md) — gallery, image detail, recipes, and camera integration
+- [Recipe Graphs](recipe_graphs.md) — exploring recipe relationships, comparing differences, and tracing recipe evolution
 - [Management Commands](management_commands.md) — importing images, bulk rating, thumbnails, camera inspection, recipe comparison
 
 ## Reference
@@ -15,4 +16,5 @@
 ## Architecture
 
 - [ADR 001 — Camera Bridge](ADRs/001-camera-bridge.md) — decision to use PyUSB with raw PTP/USB for camera communication
+- [ADR 002 — Recipe Relationship Graph](ADRs/002-recipe-relationship-graph.md) — graph definition, topology decisions, and the two complementary views
 

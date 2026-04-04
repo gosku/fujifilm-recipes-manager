@@ -1,20 +1,21 @@
 # Film Simulations Reader
 
-A Django application for managing Fujifilm camera recipes and browsing your image catalog. It reads EXIF data from your JPEG files, matches images to the Fujifilm recipe they were shot with, and lets you filter and group your catalog by recipe. Camera integration (pushing recipes directly to the camera) is in progress.
+A Django application for managing Fujifilm camera recipes and browsing your image catalog. It reads EXIF data from your JPEG files, matches images to the Fujifilm recipe they were shot with, and lets you filter and group your catalog by recipe. You can push recipes directly to your camera over USB and explore relationships between recipes through an interactive graph.
 
 Read more about it in our [documentation index](docs/index.md).
 
 ![Gallery view](docs/images/2026-03-28_19-35.jpg)
-![Image detail](docs/images/2026-03-28_19-35_1.jpg)
+![Recipe graph](docs/images/film_sim_recipe_graph.jpg)
 ![Push recipe to camera](docs/images/push_to_camera_demo.gif)
 
 ## Features
 
 - Import Fujifilm JPEGs and browse them in a filterable gallery
 - View full-resolution images with their complete recipe and EXIF data
+- Name recipes and push them to your camera's custom slots over USB
+- Explore relationships between recipes through an interactive graph, compare differences side by side, and trace how your recipes evolved from one another
 - Rate images (0–5 stars) individually or in bulk from the command line
 - Sort the gallery by rating to surface your best shots first
-- Name recipes and push them to your camera's custom slots over USB
 
 ---
 
