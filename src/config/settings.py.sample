@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from kombu import Queue
+
 import structlog
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -33,6 +35,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 GALLERY_PAGE_SIZE = 24  # number of images shown per page in the gallery view
 IMAGE_MAX_RATING: int = 5  # maximum star rating a user can assign to an image (1–N)
+RECIPE_GRAPH_MAX_DISTANCE: int = 7  # maximum Hamming distance for an edge to appear in the recipe relationship graph
 PTP_DEVICE = "src.domain.camera.ptp_usb_device.PTPUSBDevice"  # dotted import path to the PTP device implementation; swap for a stub/mock in tests
 CAMERA_VERIFY_WRITES: bool = True  # set to False to skip read-back verification after writing
 
@@ -71,8 +74,10 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-PROCESS_IMAGE_QUEUE = os.environ.get("PROCESS_IMAGE_QUEUE", "celery")  # Celery queue name for image-processing tasks
-CELERY_TASK_QUEUES = [PROCESS_IMAGE_QUEUE]  # list of queues Celery workers will consume from
+PROCESS_IMAGE_QUEUE: str = "process-image"  # Celery queue name for image-processing tasks
+
+
+CELERY_TASK_QUEUES: tuple[Queue, ...] = (Queue(PROCESS_IMAGE_QUEUE),)
 
 # Logging
 LOG_DIR = BASE_DIR / "logs"
