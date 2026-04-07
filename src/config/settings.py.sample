@@ -51,7 +51,7 @@ CAMERA_RETRY_BACKOFF_S:     float = 0.15   # base back-off; doubles each retry (
 THUMBNAIL_CACHE_DIR = BASE_DIR / "thumbnail_cache"  # filesystem directory where generated thumbnails are cached
 IMAGE_IMPORT_DIR = BASE_DIR / "imports"  # internal directory where web-uploaded images are stored (not user-configurable)
 IMAGE_IMPORT_DIR.mkdir(exist_ok=True)
-IMAGE_IMPORT_MAX_FILES = 50  # max files per web upload batch; use the CLI for larger imports
+IMAGE_IMPORT_MAX_FILES = 50  # max files when using web upload, keep using CLI for larger imports
 
 TEMPLATES = [
     {
