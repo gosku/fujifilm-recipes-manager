@@ -299,6 +299,82 @@
       padding: 0.1rem 0.4rem;
     }
 
+
+    /* --- Import zone --- */
+    .import-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.85rem;
+      color: #555;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .import-btn:hover { border-color: #f97316; color: #f97316; }
+
+    .import-panel {
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 1rem 2rem;
+      flex-shrink: 0;
+    }
+    .import-panel[hidden] { display: none; }
+
+    .drop-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .drop-zone.drag-over {
+      border-color: #f97316;
+      background: #fff7ed;
+      color: #f97316;
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .import-results {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .import-tag {
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .import-tag--ok     { background: #d1fae5; color: #065f46; }
+    .import-tag--skip   { background: #fef3c7; color: #92400e; }
+    .import-tag--error  { background: #fee2e2; color: #7f1d1d; }
+
+    .import-spinner {
+      display: inline-block;
+      width: 1rem; height: 1rem;
+      border: 2px solid #e0e0e0;
+      border-top-color: #f97316;
+      border-radius: 50%;
+      animation: slot-spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+
     .no-results {
       grid-column: 1 / -1;
       color: #888;
@@ -457,13 +533,7 @@
         hx-trigger="change"
         hx-target="#gallery-results"
         hx-push-url="true">
-    <div class="filter-group">
-      <label class="rating-toggle" for="rating-first-toggle">
-        <input type="checkbox" id="rating-first-toggle">
-        Sort by rating
-      </label>
-      <input type="hidden" name="rating_first" id="rating-first-input" value="{{ rating_first }}">
-    </div>
+    <input type="hidden" name="rating_first" id="rating-first-input" value="{{ rating_first }}">
     {% include "images/_recipe_filter.html" %}
     {% include "images/_sidebar_filters.html" %}
   </form>
@@ -472,6 +542,25 @@
 <main class="main">
   <div class="gallery-header">
     <h1>Images</h1>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <button class="import-btn" id="import-toggle-btn" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import
+      </button>
+      <label class="rating-toggle" for="rating-first-toggle">
+        <input type="checkbox" id="rating-first-toggle">
+        Sort by rating
+      </label>
+    </div>
+  </div>
+
+  <div class="import-panel" id="import-panel" hidden>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".jpg,.jpeg" multiple>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 0.5rem"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Drop Fujifilm JPEGs here, or click to select
+    </div>
+    <div class="import-results" id="import-results" hidden></div>
   </div>
   <div class="gallery-scroll">
     <div id="gallery-results">
@@ -667,6 +756,75 @@
     if (e.key === 'ArrowLeft') { var btn = overlay.querySelector('.detail-nav-prev'); if (btn) btn.click(); }
     if (e.key === 'ArrowRight') { var btn = overlay.querySelector('.detail-nav-next'); if (btn) btn.click(); }
   });
+  // --- Drag & drop import ---
+  (function () {
+    var toggleBtn  = document.getElementById('import-toggle-btn');
+    var panel      = document.getElementById('import-panel');
+    var dropZone   = document.getElementById('drop-zone');
+    var fileInput  = document.getElementById('file-input');
+    var resultsEl  = document.getElementById('import-results');
+    var uploadUrl  = '{% url "image-upload" %}';
+    var csrfToken  = '{{ csrf_token }}';
+
+    toggleBtn.addEventListener('click', function () {
+      panel.hidden = !panel.hidden;
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      dropZone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      dropZone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+      });
+    });
+
+    dropZone.addEventListener('drop', function (e) { handleFiles(e.dataTransfer.files); });
+    fileInput.addEventListener('change', function () { handleFiles(fileInput.files); fileInput.value = ''; });
+
+    function handleFiles(files) {
+      if (!files || files.length === 0) return;
+      var form = new FormData();
+      Array.from(files).forEach(function (f) { form.append('images', f); });
+
+      resultsEl.hidden = false;
+      resultsEl.innerHTML = '<span class="import-spinner"></span> Importing ' + files.length + ' file(s)\u2026';
+
+      fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: form,
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var html = '';
+        if (data.error) {
+          html = '<span class="import-tag import-tag--error">' + data.error + '</span>';
+        } else {
+          data.processed.forEach(function (name) {
+            html += '<span class="import-tag import-tag--ok">' + name + '</span>';
+          });
+          data.skipped.forEach(function (name) {
+            html += '<span class="import-tag import-tag--skip">Skipped: ' + name + '</span>';
+          });
+          if (data.processed.length > 0) {
+            document.getElementById('filter-form').dispatchEvent(new Event('change'));
+          }
+        }
+        resultsEl.innerHTML = html;
+      })
+      .catch(function () {
+        resultsEl.innerHTML = '<span class="import-tag import-tag--error">Upload failed. Check server logs.</span>';
+      });
+    }
+  }());
+
 </script>
 </body>
 </html>

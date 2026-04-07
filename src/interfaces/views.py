@@ -146,6 +146,42 @@ def set_image_rating_view(request, image_id):
     )
 
 
+
+
+@http_decorators.require_POST
+def upload_images(request):
+    uploaded = request.FILES.getlist("images")
+    if not uploaded:
+        return http.JsonResponse({"error": "No files provided"}, status=400)
+
+    if len(uploaded) > settings.IMAGE_IMPORT_MAX_FILES:
+        return http.JsonResponse(
+            {"error": f"Max {settings.IMAGE_IMPORT_MAX_FILES} files per upload. Use the CLI for larger imports."},
+            status=413,
+        )
+
+    import_dir = Path(settings.IMAGE_IMPORT_DIR)
+    processed, skipped = [], []
+
+    for f in uploaded:
+        if not f.name.lower().endswith((".jpg", ".jpeg")):
+            skipped.append(f.name)
+            continue
+        dest = import_dir / f.name
+        if dest.exists():
+            skipped.append(f.name)
+            continue
+        with dest.open("wb") as fp:
+            for chunk in f.chunks():
+                fp.write(chunk)
+        try:
+            image_operations.process_image(image_path=str(dest))
+            processed.append(f.name)
+        except image_operations.NoFilmSimulationError:
+            skipped.append(f.name)
+
+    return http.JsonResponse({"processed": processed, "skipped": skipped})
+
 _NOTABLE_RECIPE_MIN_IMAGES = 50  # recipes with fewer images are hidden unless named or selected
 _SLOT_TO_INDEX = {"C1": 1, "C2": 2, "C3": 3, "C4": 4, "C5": 5, "C6": 6, "C7": 7}
 
