@@ -68,6 +68,23 @@
       border-color: #2db37a;
     }
 
+    .recipe-name-search {
+      display: block;
+      width: 100%;
+      padding: 0.35rem 0.5rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #333;
+      background: #fff;
+    }
+
+    .recipe-name-search:focus {
+      outline: none;
+      border-color: #2db37a;
+    }
+
     .clear-filters-btn {
       display: block;
       width: 100%;
@@ -263,9 +280,15 @@
     <a href="{% url 'recipes-explorer' %}" class="clear-filters-btn">Clear all filters</a>
     <form id="recipe-filter-form"
           hx-get="{% url 'recipes-explorer' %}"
-          hx-trigger="change"
+          hx-trigger="change, input delay:300ms from:#recipe-name-search"
           hx-target="#recipe-gallery-results"
           hx-push-url="true">
+      <input id="recipe-name-search"
+             type="search"
+             name="name_search"
+             class="recipe-name-search"
+             placeholder="Search by name…"
+             value="{{ name_search }}">
       {% include "recipes/includes/sidebar_filters.html" %}
     </form>
   </aside>

@@ -125,6 +125,60 @@ class TestGetFilteredRecipesOrdering:
 
 
 @pytest.mark.django_db
+class TestGetFilteredRecipesNameSearch:
+    def test_matches_exact_name(self):
+        recipe = FujifilmRecipeFactory(name="Street Provia")
+        FujifilmRecipeFactory(name="Velvia Summer")
+
+        result = get_filtered_recipes(active_filters={}, name_search="Street Provia")
+
+        assert [r.id for r in result] == [recipe.pk]
+
+    def test_matches_partial_name(self):
+        recipe = FujifilmRecipeFactory(name="Street Provia")
+        FujifilmRecipeFactory(name="Velvia Summer")
+
+        result = get_filtered_recipes(active_filters={}, name_search="Street")
+
+        assert [r.id for r in result] == [recipe.pk]
+
+    def test_is_case_insensitive(self):
+        recipe = FujifilmRecipeFactory(name="Street Provia")
+
+        result = get_filtered_recipes(active_filters={}, name_search="street provia")
+
+        assert [r.id for r in result] == [recipe.pk]
+
+    def test_empty_name_search_returns_all(self):
+        recipe_a = FujifilmRecipeFactory(name="Street Provia")
+        recipe_b = FujifilmRecipeFactory(name="Velvia Summer")
+
+        result = get_filtered_recipes(active_filters={}, name_search="")
+
+        ids = {r.id for r in result}
+        assert ids == {recipe_a.pk, recipe_b.pk}
+
+    def test_no_match_returns_empty_list(self):
+        FujifilmRecipeFactory(name="Street Provia")
+
+        result = get_filtered_recipes(active_filters={}, name_search="Nonexistent")
+
+        assert result == []
+
+    def test_name_search_combines_with_active_filters(self):
+        match = FujifilmRecipeFactory(name="Street Provia", film_simulation="Provia")
+        FujifilmRecipeFactory(name="Street Velvia", film_simulation="Velvia")
+        FujifilmRecipeFactory(name="Other Provia", film_simulation="Provia")
+
+        result = get_filtered_recipes(
+            active_filters={"film_simulation": ["Provia"]},
+            name_search="Street",
+        )
+
+        assert [r.id for r in result] == [match.pk]
+
+
+@pytest.mark.django_db
 class TestGetFilteredRecipesDataFields:
     def test_recipe_data_exposes_image_count(self):
         recipe = FujifilmRecipeFactory()

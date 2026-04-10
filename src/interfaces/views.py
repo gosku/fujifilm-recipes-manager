@@ -257,12 +257,14 @@ def _recipe_explorer_filters_from_request(request: http.HttpRequest) -> dict[str
 
 def recipes_explorer_view(request: http.HttpRequest) -> http.HttpResponse:
     active_filters = _recipe_explorer_filters_from_request(request)
+    name_search = request.GET.get("name_search", "").strip()
     gallery = recipe_queries.get_recipe_gallery_data(
         active_filters=active_filters,
+        name_search=name_search,
         page_number=request.GET.get("page", 1),
         page_size=settings.RECIPE_EXPLORER_PAGE_SIZE,
     )
-    ctx = {"page_obj": gallery.page_obj, "sidebar_options": gallery.sidebar_options}
+    ctx = {"page_obj": gallery.page_obj, "sidebar_options": gallery.sidebar_options, "name_search": name_search}
     if request.headers.get("HX-Request"):
         return shortcuts.render(request, "recipes/partials/htmx_filter_response.html", ctx)
     return shortcuts.render(request, "recipes/recipes_explorer.html", ctx)
@@ -270,8 +272,10 @@ def recipes_explorer_view(request: http.HttpRequest) -> http.HttpResponse:
 
 def recipes_explorer_results_view(request: http.HttpRequest) -> http.HttpResponse:
     active_filters = _recipe_explorer_filters_from_request(request)
+    name_search = request.GET.get("name_search", "").strip()
     gallery = recipe_queries.get_recipe_gallery_data(
         active_filters=active_filters,
+        name_search=name_search,
         page_number=request.GET.get("page", 1),
         page_size=settings.RECIPE_EXPLORER_PAGE_SIZE,
     )

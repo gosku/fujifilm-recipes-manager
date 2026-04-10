@@ -188,6 +188,66 @@ class TestRecipeExplorerSidebar:
 
 
 # ---------------------------------------------------------------------------
+# Name search
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestRecipeExplorerNameSearch:
+    def test_name_search_returns_matching_recipe(self, client):
+        FujifilmRecipeFactory(name="Street Provia", film_simulation="Provia")
+        FujifilmRecipeFactory(name="Velvia Summer", film_simulation="Velvia")
+
+        response = _get_explorer(client, name_search="Street")
+
+        names = _card_names(response)
+        assert "Street Provia" in names
+        assert "Velvia Summer" not in names
+
+    def test_name_search_is_case_insensitive(self, client):
+        FujifilmRecipeFactory(name="Street Provia")
+
+        response = _get_explorer(client, name_search="street provia")
+
+        assert "Street Provia" in _card_names(response)
+
+    def test_empty_name_search_returns_all_recipes(self, client):
+        FujifilmRecipeFactory(name="Street Provia")
+        FujifilmRecipeFactory(name="Velvia Summer")
+
+        response = _get_explorer(client, name_search="")
+
+        names = _card_names(response)
+        assert "Street Provia" in names
+        assert "Velvia Summer" in names
+
+    def test_name_search_with_no_match_shows_no_results(self, client):
+        FujifilmRecipeFactory(name="Street Provia")
+
+        response = _get_explorer(client, name_search="Nonexistent")
+
+        soup = BeautifulSoup(response.content, "html.parser")
+        assert soup.find(class_="no-results") is not None
+
+    def test_name_search_combines_with_field_filter(self, client):
+        FujifilmRecipeFactory(name="Street Provia", film_simulation="Provia")
+        FujifilmRecipeFactory(name="Street Velvia", film_simulation="Velvia")
+
+        response = client.get("/recipes/?film_simulation=Provia&name_search=Street")
+
+        names = _card_names(response)
+        assert "Street Provia" in names
+        assert "Street Velvia" not in names
+
+    def test_name_search_input_is_pre_filled_with_current_value(self, client):
+        response = _get_explorer(client, name_search="Street")
+
+        soup = BeautifulSoup(response.content, "html.parser")
+        search_input = soup.find("input", {"name": "name_search"})
+        assert search_input is not None
+        assert search_input.get("value") == "Street"
+
+
+# ---------------------------------------------------------------------------
 # HTMX partial responses
 # ---------------------------------------------------------------------------
 

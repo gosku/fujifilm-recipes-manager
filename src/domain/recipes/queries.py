@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 import attrs
 from django.core import paginator as django_paginator
 from django.db import models as db_models
-from django.db.models import Case, Count, IntegerField, Max, Min, OuterRef, Subquery, Value, When
+from django.db.models import Case, Count, IntegerField, Max, Min, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import TruncMonth
 
 from src.data import models
@@ -417,6 +417,7 @@ def _to_recipe_data(recipe: models.FujifilmRecipe) -> RecipeData:
 def get_filtered_recipes(
     *,
     active_filters: Mapping[str, Sequence[str]],
+    name_search: str = "",
 ) -> list[RecipeData]:
     """Return all recipes matching the given multi-valued field filters.
 
@@ -424,6 +425,8 @@ def get_filtered_recipes(
     e.g. ``{"film_simulation": ["Provia", "Classic Chrome"], "grain_roughness": ["Off"]}``.
     An empty list for a key is ignored (treated as no filter on that field).
     Pass an empty dict to return all recipes.
+
+    *name_search* is an optional case-insensitive substring filter on the recipe name.
 
     Results are ordered by:
     1. Whether the recipe has a name — named recipes before unnamed.
@@ -441,6 +444,8 @@ def get_filtered_recipes(
     for field, values in active_filters.items():
         if values:
             qs = qs.filter(**{f"{field}__in": values})
+    if name_search:
+        qs = qs.filter(Q(name__icontains=name_search))
     qs = qs.order_by("-has_name", "-image_count", "pk")
     return [_to_recipe_data(r) for r in qs]
 
@@ -448,12 +453,15 @@ def get_filtered_recipes(
 def get_recipe_sidebar_filter_options(
     *,
     active_filters: Mapping[str, Sequence[str]],
+    name_search: str = "",
 ) -> dict[str, dict]:
     """Return faceted filter options for the recipe explorer sidebar.
 
     For each field in RECIPE_FILTER_FIELDS, counts the number of recipes matching
     that field value while applying all OTHER active filters (faceted search).
     Counts represent recipes, not images.
+
+    *name_search* is applied to all facet counts so they reflect the current search.
     """
     result = {}
     for field, label in filter_queries.RECIPE_FILTER_FIELDS:
@@ -461,6 +469,8 @@ def get_recipe_sidebar_filter_options(
         is_integer = isinstance(model_field, db_models.IntegerField)
 
         base_qs = models.FujifilmRecipe.objects.all()
+        if name_search:
+            base_qs = base_qs.filter(Q(name__icontains=name_search))
         for other_field, values in active_filters.items():
             if other_field == field or not values:
                 continue
@@ -524,6 +534,7 @@ class RecipeGalleryData:
 def get_recipe_gallery_data(
     *,
     active_filters: Mapping[str, Sequence[str]],
+    name_search: str = "",
     page_number: int | str,
     page_size: int,
 ) -> RecipeGalleryData:
@@ -532,6 +543,8 @@ def get_recipe_gallery_data(
     Filters recipes by *active_filters* (multi-valued field lookups), annotates
     each with its image count and the ID of its most popular image (for the card
     background), paginates, and returns domain value objects — no ORM models escape.
+
+    *name_search* is an optional case-insensitive substring filter on the recipe name.
 
     Results are ordered by:
     1. Whether the recipe has a name — named recipes before unnamed.
@@ -556,6 +569,8 @@ def get_recipe_gallery_data(
     for field, values in active_filters.items():
         if values:
             qs = qs.filter(**{f"{field}__in": values})
+    if name_search:
+        qs = qs.filter(Q(name__icontains=name_search))
     qs = qs.order_by("-has_name", "-image_count", "pk")
 
     raw_page = django_paginator.Paginator(qs, page_size).get_page(page_number)
@@ -568,7 +583,7 @@ def get_recipe_gallery_data(
     )
     return RecipeGalleryData(
         page_obj=page,
-        sidebar_options=get_recipe_sidebar_filter_options(active_filters=active_filters),
+        sidebar_options=get_recipe_sidebar_filter_options(active_filters=active_filters, name_search=name_search),
     )
 
 
