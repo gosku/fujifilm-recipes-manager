@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: your_db_name
-          POSTGRES_USER: your_db_user
-          POSTGRES_PASSWORD: your_db_password
+          POSTGRES_DB: fujifilm_recipes
+          POSTGRES_USER: fujifilm_recipes
+          POSTGRES_PASSWORD: fujifilm_recipes
         ports:
           - 5432:5432
         options: >-
@@ -35,9 +35,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
-
-      - name: Set up settings
-        run: cp src/config/settings.py.sample src/config/settings.py
 
       - name: Check no missing migrations
         run: python manage.py makemigrations --check --dry-run
