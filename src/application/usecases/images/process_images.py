@@ -9,6 +9,9 @@ def import_images_from_folder(*, folder: str) -> int:
     Process all JPG images in *folder*, dispatching async or sync based on settings.
 
     Returns the total number of images found.
+
+    Raises:
+        InvalidFolderError: If *folder* does not exist or is not a directory.
     """
     if settings.USE_ASYNC_TASKS:
         return _enqueue_images_in_folder(folder=folder)
@@ -21,8 +24,14 @@ def _enqueue_images_in_folder(*, folder: str) -> int:
     Enqueue a Celery task for every JPG image found under *folder*.
 
     Returns the total number of tasks enqueued.
+
+    Raises:
+        InvalidFolderError: If *folder* does not exist or is not a directory.
     """
-    paths = queries.collect_image_paths(folder=folder)
+    try:
+        paths = queries.collect_image_paths(folder=folder)
+    except FileNotFoundError as exc:
+        raise InvalidFolderError(folder) from exc
     for path in paths:
         workertasks.enqueue_task(
             task_name="src.interfaces.tasks.process_image_task",
