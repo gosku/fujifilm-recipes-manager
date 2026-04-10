@@ -29,20 +29,25 @@
 
     .sidebar-nav {
       display: flex;
+      flex-direction: row;
       gap: 0.25rem;
       margin-bottom: 1.5rem;
     }
 
     .sidebar-nav__link {
-      display: inline-flex;
+      flex: 1;
+      display: flex;
       align-items: center;
-      padding: 0.25rem 0.6rem;
+      justify-content: center;
+      padding: 0.35rem 0.6rem;
       border-radius: 4px;
+      border: 1px solid #ccc;
       font-size: 0.8rem;
       font-weight: 500;
       color: #555;
       text-decoration: none;
       cursor: default;
+      text-align: center;
     }
 
     .sidebar-nav__link[href] {
@@ -50,14 +55,16 @@
     }
 
     .sidebar-nav__link[href]:hover {
-      background: #f0f0f0;
+      background: #e8e8e8;
       color: #222;
+      border-color: #bbb;
     }
 
     .sidebar-nav__link--active {
       background: #f0fdf4;
       color: #2db37a;
       font-weight: 600;
+      border-color: #2db37a;
     }
 
     .main {
