@@ -61,7 +61,7 @@ Parallel image processing via Celery. Requires PostgreSQL and RabbitMQ.
 **Install system dependencies:**
 
 ```bash
-./setup.sh full   # installs Python, PostgreSQL, RabbitMQ, libusb, exiftool (macOS and Ubuntu)
+./setup.sh full   # installs Python, libusb, exiftool, PostgreSQL, RabbitMQ (macOS and Ubuntu)
 ```
 
 This script is idempotent — re-running it skips anything already in place.
@@ -130,11 +130,6 @@ Python 3.11+ is required.
   CREATE DATABASE fujifilm_recipes OWNER fujifilm_recipes;
   \q
   ```
-
-#### Memcached
-
-- **macOS:** `brew install memcached && brew services start memcached`
-- **Ubuntu:** `sudo apt install memcached && sudo systemctl start memcached`
 
 #### exiftool (required for image processing with `process_images`)
 

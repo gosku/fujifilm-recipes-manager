@@ -169,21 +169,7 @@ if [[ "$MODE" == "full" ]]; then
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. Memcached                                               (full install only)
-# ══════════════════════════════════════════════════════════════════════════════
-if [[ "$MODE" == "full" ]]; then
-    info "Checking Memcached..."
-    if [[ "$OS" == "macos" ]]; then
-        brew_install memcached
-        brew_start memcached
-    else
-        apt_install memcached
-        systemd_start memcached
-    fi
-fi
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 6. RabbitMQ                                                (full install only)
+# 5. RabbitMQ                                                (full install only)
 # ══════════════════════════════════════════════════════════════════════════════
 if [[ "$MODE" == "full" ]]; then
     info "Checking RabbitMQ..."
