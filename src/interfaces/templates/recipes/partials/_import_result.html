@@ -1,0 +1,29 @@
+{% if error %}
+<div class="import-result import-result--error">
+  <p class="import-result__message">{{ error }}</p>
+</div>
+
+{% elif imported is not None %}
+<div class="import-result import-result--done">
+  {% if imported %}
+  <p class="import-result__message import-result__message--success">
+    {{ imported|length }} recipe{{ imported|length|pluralize }} imported successfully.
+  </p>
+  {% endif %}
+
+  {% if failed %}
+  <p class="import-result__message import-result__message--warning">
+    {{ failed|length }} file{{ failed|length|pluralize }} could not be processed:
+  </p>
+  <ul class="import-result__failed-list">
+    {% for name in failed %}
+    <li>{{ name }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if not imported and not failed %}
+  <p class="import-result__message">No files were processed.</p>
+  {% endif %}
+</div>
+{% endif %}

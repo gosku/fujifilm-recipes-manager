@@ -263,6 +263,172 @@
       color: #888;
       font-style: italic;
     }
+
+    /* ── Create Recipes button + dropdown ───────────────────────────── */
+    .create-recipes-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .create-recipes-btn {
+      padding: 0.4rem 0.85rem;
+      background: #2db37a;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .create-recipes-btn:hover { background: #27a06d; }
+
+    .create-recipes-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 210px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .create-recipes-dropdown[hidden] { display: none; }
+
+    .create-recipes-option {
+      display: block;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 0.875rem;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .create-recipes-option:hover { background: #f5f5f5; }
+
+    /* ── Import modal overlay ───────────────────────────────────────── */
+    .import-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .import-overlay[hidden] { display: none; }
+
+    .import-modal {
+      background: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      width: 480px;
+      max-width: calc(100vw - 2rem);
+      max-height: calc(100vh - 4rem);
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+
+    .import-modal__close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: #888;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .import-modal__close:hover { color: #333; }
+
+    .import-modal h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 0.5rem;
+    }
+
+    .import-modal__desc {
+      font-size: 0.875rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .upload-from-computer-btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: #f3f4f6;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .upload-from-computer-btn:hover { background: #e8e8e8; }
+
+    #import-file-input { display: none; }
+
+    .selected-files-list {
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .selected-files-list li {
+      font-size: 0.825rem;
+      color: #444;
+      padding: 0.2rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .import-submit-btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.6rem 1rem;
+      background: #2db37a;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .import-submit-btn:hover { background: #27a06d; }
+    .import-submit-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Import result messages ─────────────────────────────────────── */
+    .import-result { margin-top: 1.25rem; }
+
+    .import-result__message { font-size: 0.875rem; margin-bottom: 0.35rem; }
+    .import-result__message--success { color: #2db37a; font-weight: 600; }
+    .import-result__message--warning { color: #b36b2d; font-weight: 600; }
+    .import-result--error .import-result__message { color: #c0392b; }
+
+    .import-result__failed-list {
+      margin: 0.25rem 0 0 1rem;
+      font-size: 0.8rem;
+      color: #666;
+    }
   </style>
 </head>
 <body>
@@ -296,6 +462,49 @@
   <main class="main">
     <div class="gallery-header">
       <h1>Explorer</h1>
+
+      <div class="create-recipes-wrap">
+        <button class="create-recipes-btn" id="create-recipes-btn">+ Create Recipes</button>
+        <div class="create-recipes-dropdown" id="create-recipes-dropdown" hidden>
+          <button class="create-recipes-option" id="open-import-modal-btn">Import recipes from images</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import modal -->
+    <div class="import-overlay" id="import-overlay" hidden>
+      <div class="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+        <button class="import-modal__close" id="close-import-modal-btn" aria-label="Close">&#x2715;</button>
+        <h2 id="import-modal-title">Import Recipes from Images</h2>
+        <p class="import-modal__desc">
+          Select one or more Fujifilm JPEG files. The recipe settings encoded in
+          their EXIF data will be extracted and saved — the image files themselves
+          are not stored.
+        </p>
+
+        <form id="import-form"
+              hx-post="{% url 'recipes-import' %}"
+              hx-encoding="multipart/form-data"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-target="#import-result"
+              hx-swap="innerHTML"
+              hx-disabled-elt="#import-submit-btn">
+
+          <label class="upload-from-computer-btn" for="import-file-input">
+            Upload from computer
+          </label>
+          <input type="file" id="import-file-input" name="images"
+                 multiple accept=".jpg,.jpeg">
+
+          <ul class="selected-files-list" id="selected-files-list" hidden></ul>
+
+          <button type="submit" class="import-submit-btn" id="import-submit-btn" hidden>
+            Import Recipes from Images
+          </button>
+        </form>
+
+        <div id="import-result"></div>
+      </div>
     </div>
     <div class="recipe-gallery-scroll">
       <div id="recipe-gallery-results" class="recipe-grid">
@@ -318,5 +527,70 @@
 
 </div><!-- .content-area -->
 
+<script>
+  (function () {
+    const createBtn      = document.getElementById('create-recipes-btn');
+    const dropdown       = document.getElementById('create-recipes-dropdown');
+    const openModalBtn   = document.getElementById('open-import-modal-btn');
+    const overlay        = document.getElementById('import-overlay');
+    const closeModalBtn  = document.getElementById('close-import-modal-btn');
+    const fileInput      = document.getElementById('import-file-input');
+    const fileList       = document.getElementById('selected-files-list');
+    const submitBtn      = document.getElementById('import-submit-btn');
+
+    // Toggle dropdown
+    createBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.hidden = !dropdown.hidden;
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function () {
+      dropdown.hidden = true;
+    });
+
+    // Open import modal
+    openModalBtn.addEventListener('click', function () {
+      dropdown.hidden = true;
+      overlay.hidden = false;
+      document.getElementById('import-result').innerHTML = '';
+      fileList.innerHTML = '';
+      fileList.hidden = true;
+      submitBtn.hidden = true;
+      fileInput.value = '';
+    });
+
+    function closeModal() {
+      overlay.hidden = true;
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.hidden) closeModal();
+    });
+
+    // Show selected files
+    fileInput.addEventListener('change', function () {
+      fileList.innerHTML = '';
+      if (fileInput.files.length === 0) {
+        fileList.hidden = true;
+        submitBtn.hidden = true;
+        return;
+      }
+      Array.from(fileInput.files).forEach(function (file) {
+        const li = document.createElement('li');
+        li.textContent = file.name;
+        fileList.appendChild(li);
+      });
+      fileList.hidden = false;
+      submitBtn.hidden = false;
+    });
+  })();
+</script>
 </body>
 </html>

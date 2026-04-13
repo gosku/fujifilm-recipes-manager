@@ -13,6 +13,7 @@ from django.views.decorators import http as http_decorators
 from src.application.usecases.camera import get_camera_slots as get_camera_slots_uc
 from src.application.usecases.camera import push_recipe as push_recipe_uc
 from src.application.usecases.recipes import build_graph as build_graph_uc
+from src.application.usecases.recipes import import_recipes_from_uploaded_files as import_recipes_uc
 from src.data import models
 from src.domain.camera import ptp_device
 from src.domain.images import filter_queries
@@ -430,6 +431,38 @@ def recipe_compare_image_view(request: http.HttpRequest, recipe_id: int, image_i
         "prev_id": page.prev_id,
         "next_id": page.next_id,
     })
+
+
+@http_decorators.require_POST
+def import_recipes_from_uploaded_files_view(request: http.HttpRequest) -> http.HttpResponse:
+    uploaded = request.FILES.getlist("images")
+    if not uploaded:
+        return shortcuts.render(
+            request,
+            "recipes/partials/_import_result.html",
+            {"error": "No files were uploaded."},
+        )
+
+    files = [
+        import_recipes_uc.UploadedFile(name=f.name, content=f.read())
+        for f in uploaded
+    ]
+
+    try:
+        result = import_recipes_uc.import_recipes_from_uploaded_files(files=files)
+    except Exception:
+        structlog.get_logger().exception("Unexpected error in import_recipes_from_uploaded_files_view")
+        return shortcuts.render(
+            request,
+            "recipes/partials/_import_result.html",
+            {"error": "An unexpected error occurred. Please try again."},
+        )
+
+    return shortcuts.render(
+        request,
+        "recipes/partials/_import_result.html",
+        {"imported": result.imported, "failed": result.failed},
+    )
 
 
 def recipe_path_deltas_view(request: http.HttpRequest) -> http.HttpResponse:
