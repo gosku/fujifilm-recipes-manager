@@ -18,4 +18,5 @@
 - [ADR 001 — Camera Bridge](ADRs/001-camera-bridge.md) — decision to use PyUSB with raw PTP/USB for camera communication
 - [ADR 002 — Recipe Relationship Graph](ADRs/002-recipe-relationship-graph.md) — graph definition, topology decisions, and the two complementary views
 - [ADR 003 — Dual Install Modes](ADRs/003-dual-install-modes.md) — SQLite + sequential vs PostgreSQL + Celery, and why a single-writer queue pattern was ruled out
+- [ADR 004 — Recipe Import File Picker](ADRs/004-recipe-import-file-picker.md) — browser file upload over native dialog or Tauri, and which layer owns the tempfile
 
