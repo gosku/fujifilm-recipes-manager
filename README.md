@@ -23,13 +23,13 @@ Read more about it in our [documentation index](docs/index.md).
 
 Two installation modes are available depending on your needs:
 
-| | Lite (user-only) | Full (developer) |
-|---|---|---|
-| **Database** | SQLite (file, no server) | PostgreSQL |
-| **Broker / worker** | None | RabbitMQ + Celery |
-| **Image processing** | Sequential (one at a time) | Parallel (N workers) |
-| **OS services to install** | None | PostgreSQL, RabbitMQ |
-| **Best for** | Personal use, small libraries | Development, large collections |
+|                            | Lite (user-only)              | Full (developer)               |
+| -------------------------- | ----------------------------- | ------------------------------ |
+| **Database**               | SQLite (file, no server)      | PostgreSQL                     |
+| **Broker / worker**        | None                          | RabbitMQ + Celery              |
+| **Image processing**       | Sequential (one at a time)    | Parallel (N workers)           |
+| **OS services to install** | None                          | PostgreSQL, RabbitMQ           |
+| **Best for**               | Personal use, small libraries | Development, large collections |
 
 ### Lite install (recommended for personal use)
 
@@ -48,6 +48,7 @@ cd film_simulations_reader
 ```bash
 make setup-lite   # creates venv, installs deps, generates SQLite config, runs migrations
 make run          # start the development server
+make update       # pull latest changes, install new deps, run migrations
 ```
 
 Images are processed sequentially when you run `python manage.py process_images`. No
@@ -78,7 +79,16 @@ make setup-full   # creates venv, installs deps, generates PostgreSQL config, ru
 ```bash
 make run      # start the Django development server
 make worker   # start a Celery worker for parallel image processing
-make test     # run the test suite
+```
+
+---
+
+## Updating
+
+To pull the latest changes, install any new dependencies, and apply pending migrations in one step:
+
+```bash
+make update
 ```
 
 ---
