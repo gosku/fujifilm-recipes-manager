@@ -6,7 +6,7 @@ CELERY  := $(VENV)/bin/celery
 
 ENV_FILE := src/config/env
 
-.PHONY: setup-lite setup-full env env-lite run worker test help
+.PHONY: setup-lite setup-full env env-lite update run worker test help
 
 ##
 ## Installation modes:
@@ -82,6 +82,18 @@ $(VENV)/bin/activate:
 		echo ""; \
 		exit 1; \
 	}
+
+## update      — pull latest changes, install new dependencies, and run migrations
+update:
+	@echo "[update] Pulling latest changes..."
+	@git pull origin main
+	@echo "[update] Installing dependencies..."
+	@$(PIP) install --quiet -r requirements.txt
+	@touch $(VENV)/.deps-installed
+	@echo "[update] Running database migrations..."
+	@$(PYTHON) manage.py migrate
+	@echo ""
+	@echo "Done. Run 'make run' to start the server."
 
 ## run         — start the Django development server
 run:
