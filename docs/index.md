@@ -13,6 +13,10 @@
 - [Image Matching](favorite_image_matching.md) — how images are matched to the catalogue when rating in bulk
 - [PTP Encodings](ptp_encodings.md) — PTP/USB encoding reference for camera communication
 
+## Development
+
+- [Contributing](contributing.md) — testing strategy, local environment setup, PR requirements, and review conventions
+
 ## Architecture
 
 - [ADR 001 — Camera Bridge](ADRs/001-camera-bridge.md) — decision to use PyUSB with raw PTP/USB for camera communication
