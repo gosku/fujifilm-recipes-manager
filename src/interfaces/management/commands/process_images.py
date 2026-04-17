@@ -1,5 +1,7 @@
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
 
 from src.application.usecases.images import process_images
 
@@ -7,10 +9,10 @@ from src.application.usecases.images import process_images
 class Command(BaseCommand):
     help = "Import images from a folder. Enqueues Celery tasks (full stack) or processes sequentially (lite install)."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("folder", type=str, help="Path to the folder containing images.")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: Any) -> None:
         folder = options["folder"]
         self.stdout.write(f"Scanning {folder} for JPG files…")
 

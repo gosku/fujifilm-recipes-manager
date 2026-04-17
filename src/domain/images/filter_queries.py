@@ -1,4 +1,5 @@
 import attrs
+from collections.abc import Mapping, Sequence
 
 from django.core import paginator as django_paginator
 from django.db import models as db_models
@@ -22,8 +23,8 @@ RECIPE_FILTER_FIELDS = [
 
 
 def get_sidebar_filter_options(
-    active_filters: dict[str, list[str]],
-) -> dict[str, dict]:
+    active_filters: Mapping[str, Sequence[str]],
+) -> dict[str, dict[str, object]]:
     """
     Compute faceted sidebar options for all recipe filter fields.
 
@@ -45,7 +46,7 @@ def get_sidebar_filter_options(
             options  – list of dicts: value, count, available, selected
             selected – list of currently selected string values for this field
     """
-    result = {}
+    result: dict[str, dict[str, object]] = {}
 
     for field, label in RECIPE_FILTER_FIELDS:
         model_field = models.FujifilmRecipe._meta.get_field(field)
@@ -83,7 +84,7 @@ def get_sidebar_filter_options(
             )
         }
 
-        selected_values: list[str] = active_filters.get(field, [])
+        selected_values: Sequence[str] = active_filters.get(field, [])
 
         # Union of available values and selected-but-unavailable values.
         all_values: set[str] = set(available_counts.keys()) | set(selected_values)
@@ -91,7 +92,7 @@ def get_sidebar_filter_options(
         # Sort: available values first, then unavailable; within each group
         # sort numerically for integer fields, alphabetically for text fields.
         if is_integer:
-            def _sort_key(v: str) -> tuple:
+            def _sort_key(v: str) -> tuple[int, int]:
                 try:
                     return (0 if v in available_counts else 1, int(v))
                 except (ValueError, TypeError):
@@ -122,9 +123,9 @@ def get_sidebar_filter_options(
 
 def get_filtered_images(
     *,
-    active_filters: dict[str, list[str]],
+    active_filters: Mapping[str, Sequence[str]],
     rating_first: bool,
-) -> db_models.QuerySet:
+) -> db_models.QuerySet[models.Image]:
     qs = models.Image.objects.select_related("fujifilm_recipe")
     recipe_ids = active_filters.get("recipe_id", [])
     if recipe_ids:
@@ -140,9 +141,9 @@ def get_filtered_images(
 
 def _recipe_options(
     *,
-    active_filters: dict[str, list[str]],
-    active_field_filters: dict[str, list[str]],
-) -> dict:
+    active_filters: Mapping[str, Sequence[str]],
+    active_field_filters: Mapping[str, Sequence[str]],
+) -> dict[str, object]:
     selected = active_filters.get("recipe_id", [])
 
     filtered_qs = models.Image.objects.filter(fujifilm_recipe__isnull=False)
@@ -182,13 +183,13 @@ def _recipe_options(
 @attrs.frozen
 class GalleryData:
     page_obj: object
-    sidebar_options: dict
-    recipe_options: dict
+    sidebar_options: dict[str, dict[str, object]]
+    recipe_options: dict[str, object]
 
 
 def get_gallery_data(
     *,
-    active_filters: dict[str, list[str]],
+    active_filters: Mapping[str, Sequence[str]],
     rating_first: bool,
     page_number: int | str,
     page_size: int,

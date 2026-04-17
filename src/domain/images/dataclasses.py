@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import attrs
 
 RECIPE_NAME_MAX_LEN = 25
 
 
-def _validate_name(instance, attribute, value):
+def _validate_name(instance: object, attribute: attrs.Attribute[str], value: str) -> None:
     if value and (len(value) > RECIPE_NAME_MAX_LEN or not value.isascii()):
         raise ValueError(
             f"Recipe name must be ≤{RECIPE_NAME_MAX_LEN} ASCII characters, got {value!r}"

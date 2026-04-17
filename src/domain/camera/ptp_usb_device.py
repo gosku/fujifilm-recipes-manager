@@ -148,7 +148,7 @@ def _skip_ptp_uint16_array(data: bytes, offset: int) -> int:
     """Skip a PTP uint16 array (uint32 count + count × uint16)."""
     if offset + 4 > len(data):
         return offset
-    count = struct.unpack_from("<I", data, offset)[0]
+    count: int = struct.unpack_from("<I", data, offset)[0]
     return offset + 4 + count * 2
 
 
@@ -320,7 +320,7 @@ class PTPUSBDevice:
         # Most Fuji recipe properties are uint16; read as uint32 if 4 bytes available.
         payload = data[12:]
         if len(payload) >= 4:
-            value = struct.unpack_from("<i", payload, 0)[0]  # signed int32
+            value: int = struct.unpack_from("<i", payload, 0)[0]  # signed int32
         elif len(payload) >= 2:
             value = struct.unpack_from("<H", payload, 0)[0]  # uint16
         elif len(payload) >= 1:

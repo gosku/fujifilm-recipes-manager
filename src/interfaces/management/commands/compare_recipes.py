@@ -1,4 +1,6 @@
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
 
 from src.application.usecases.images import compare_recipes as compare_recipes_uc
 from src.application.usecases.images.compare_recipes import RECIPE_FIELDS
@@ -7,10 +9,10 @@ from src.application.usecases.images.compare_recipes import RECIPE_FIELDS
 class Command(BaseCommand):
     help = "Compare multiple recipes by ID and show their settings and usage periods."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("recipe_ids", nargs="+", type=int, help="Recipe IDs to compare")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: Any) -> None:
         ids = options["recipe_ids"]
         result = compare_recipes_uc.get_recipe_comparison(recipe_ids=ids)
 
@@ -52,9 +54,11 @@ class Command(BaseCommand):
             s = result.stats_by_id.get(r.id)
             self.stdout.write(f"\nRecipe {r.id} ({r.name or 'unnamed'}):")
             if s:
+                first = s.first_used.strftime('%Y-%m-%d') if s.first_used else "unknown"
+                last = s.last_used.strftime('%Y-%m-%d') if s.last_used else "unknown"
                 self.stdout.write(f"  Photos:     {s.photo_count}")
-                self.stdout.write(f"  First used: {s.first_used.strftime('%Y-%m-%d')}")
-                self.stdout.write(f"  Last used:  {s.last_used.strftime('%Y-%m-%d')}")
+                self.stdout.write(f"  First used: {first}")
+                self.stdout.write(f"  Last used:  {last}")
             else:
                 self.stdout.write("  No images with date_taken found.")
 

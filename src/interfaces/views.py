@@ -1,6 +1,7 @@
 import json
 import mimetypes
 import structlog
+from typing import Any
 from pathlib import Path
 
 from django.conf import settings
@@ -25,7 +26,7 @@ from src.domain.recipes import operations as recipe_operations
 from src.domain.recipes import queries as recipe_queries
 
 
-def _active_filters_from_request(request) -> dict[str, list[str]]:
+def _active_filters_from_request(request: http.HttpRequest) -> dict[str, list[str]]:
     filters = {
         field: request.GET.getlist(field)
         for field, _ in filter_queries.RECIPE_FILTER_FIELDS
@@ -37,7 +38,7 @@ def _active_filters_from_request(request) -> dict[str, list[str]]:
     return filters
 
 
-def gallery_view(request):
+def gallery_view(request: http.HttpRequest) -> http.HttpResponse:
     active_filters = _active_filters_from_request(request)
     rating_first = request.GET.get("rating_first", "1") == "1"
     gallery = filter_queries.get_gallery_data(
@@ -64,7 +65,7 @@ def gallery_view(request):
     )
 
 
-def image_detail_view(request, image_id):
+def image_detail_view(request: http.HttpRequest, image_id: int) -> http.HttpResponse:
     max_rating = settings.IMAGE_MAX_RATING
     rating_range = range(1, max_rating + 1)
     if request.headers.get("HX-Request"):
@@ -96,7 +97,7 @@ def image_detail_view(request, image_id):
     })
 
 
-def gallery_results_view(request):
+def gallery_results_view(request: http.HttpRequest) -> http.HttpResponse:
     active_filters = _active_filters_from_request(request)
     rating_first = request.GET.get("rating_first", "1") == "1"
     qs = filter_queries.get_filtered_images(active_filters=active_filters, rating_first=rating_first)
@@ -104,7 +105,7 @@ def gallery_results_view(request):
     return shortcuts.render(request, "images/_gallery_htmx_scroll_response.html", {"page_obj": page_obj})
 
 
-def image_file_view(request, image_id):
+def image_file_view(request: http.HttpRequest, image_id: int) -> http.HttpResponseBase:
     image = shortcuts.get_object_or_404(models.Image, pk=image_id)
     path = Path(image.filepath)
     if not path.is_file():
@@ -121,7 +122,7 @@ def image_file_view(request, image_id):
 
 
 @http_decorators.require_POST
-def set_image_rating_view(request, image_id):
+def set_image_rating_view(request: http.HttpRequest, image_id: int) -> http.HttpResponse:
     try:
         image = models.Image.objects.get(pk=image_id)
     except models.Image.DoesNotExist:
@@ -152,14 +153,14 @@ _SLOT_TO_INDEX = {"C1": 1, "C2": 2, "C3": 3, "C4": 4, "C5": 5, "C6": 6, "C7": 7}
 
 
 class SelectSlot(generic.View):
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: http.HttpRequest, *args: object, **kwargs: Any) -> http.HttpResponseBase:
         recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         if not recipe.name:
             raise http.Http404
         self.recipe = recipe
         return super().dispatch(request, *args, **kwargs)
 
-    def get(self, request, recipe_id):
+    def get(self, request: http.HttpRequest, recipe_id: int) -> http.HttpResponse:
         is_htmx = request.headers.get("HX-Request")
         try:
             states = get_camera_slots_uc.get_camera_slots()
@@ -182,7 +183,7 @@ class SelectSlot(generic.View):
 
 
 class PushRecipeToCamera(generic.View):
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: http.HttpRequest, *args: object, **kwargs: Any) -> http.HttpResponseBase:
         self.recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         slot_index = _SLOT_TO_INDEX.get(kwargs["slot"])
         if slot_index is None:
@@ -190,7 +191,7 @@ class PushRecipeToCamera(generic.View):
         self.slot_index = slot_index
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, recipe_id, slot):
+    def post(self, request: http.HttpRequest, recipe_id: int, slot: str) -> http.HttpResponse:
         is_htmx = request.headers.get("HX-Request")
         error_ctx = {"recipe_id": recipe_id, "slot": slot}
         try:
@@ -222,11 +223,11 @@ class PushRecipeToCamera(generic.View):
 
 
 class SetRecipeName(generic.View):
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: http.HttpRequest, *args: object, **kwargs: Any) -> http.HttpResponseBase:
         self.recipe = shortcuts.get_object_or_404(models.FujifilmRecipe, pk=kwargs["recipe_id"])
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, recipe_id):
+    def post(self, request: http.HttpRequest, recipe_id: int) -> http.HttpResponse:
         name = request.POST.get("name", "").strip()
         try:
             recipe_operations.set_recipe_name(recipe=self.recipe, name=name)
@@ -249,7 +250,7 @@ class SetRecipeName(generic.View):
 
 
 class SetRecipeCoverImage(generic.View):
-    def post(self, request, recipe_id, image_id):
+    def post(self, request: http.HttpRequest, recipe_id: int, image_id: int) -> http.HttpResponse:
         try:
             recipe_operations.set_cover_image_for_recipe(recipe_id=recipe_id, image_id=image_id)
         except (
@@ -472,7 +473,7 @@ def import_recipes_from_uploaded_files_view(request: http.HttpRequest) -> http.H
         )
 
     files = [
-        import_recipes_uc.UploadedFile(name=f.name, content=f.read())
+        import_recipes_uc.UploadedFile(name=f.name or "", content=f.read())
         for f in uploaded
     ]
 
@@ -523,7 +524,7 @@ def recipe_path_deltas_view(request: http.HttpRequest) -> http.HttpResponse:
     })
 
 
-def _resized_image_response(path: Path, width: int):
+def _resized_image_response(path: Path, width: int) -> http.FileResponse:
     cache_path, content_type = thumbnail_operations.generate_thumbnail_with_content_type(original_path=path, width=width)
     response = http.FileResponse(cache_path.open("rb"), content_type=content_type)
     response["Cache-Control"] = "max-age=86400"

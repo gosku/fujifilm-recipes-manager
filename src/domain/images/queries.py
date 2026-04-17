@@ -1,6 +1,7 @@
 import attrs
 import os
 import re
+from collections.abc import Mapping, Sequence
 import subprocess
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -167,7 +168,7 @@ def parse_exif_date(*, value: str) -> datetime | None:
 
 def _normalize_wb_fine_tune(*, raw: str) -> str:
     """Divide exiftool White Balance Fine Tune values by 20 to get camera values."""
-    def _divide(m: re.Match) -> str:
+    def _divide(m: re.Match[str]) -> str:
         return f"{m.group(1)} {int(m.group(2)) // 20:+d}"
     return _WB_FINE_TUNE_RE.sub(_divide, raw)
 
@@ -336,7 +337,7 @@ class ImageDetailContext:
 def get_image_detail(
     *,
     image_id: int,
-    active_filters: dict[str, list[str]],
+    active_filters: Mapping[str, Sequence[str]],
     rating_first: bool,
 ) -> ImageDetailContext:
     """Fetch an image and its prev/next neighbours within the filtered image sequence.

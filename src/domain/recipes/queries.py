@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 import attrs
 from django.core import paginator as django_paginator
@@ -131,8 +135,8 @@ def recipe_from_db(*, recipe: models.FujifilmRecipe) -> image_dataclasses.Fujifi
 class RecipeUsageStats:
     recipe_id: int
     photo_count: int
-    first_used: object  # datetime | None
-    last_used: object  # datetime | None
+    first_used: datetime | None
+    last_used: datetime | None
 
 
 @attrs.frozen
@@ -487,7 +491,7 @@ def get_recipe_sidebar_filter_options(
     *,
     active_filters: Mapping[str, Sequence[str]],
     name_search: str = "",
-) -> dict[str, dict]:
+) -> dict[str, dict[str, object]]:
     """Return faceted filter options for the recipe explorer sidebar.
 
     For each field in RECIPE_FILTER_FIELDS, counts the number of recipes matching
@@ -496,7 +500,7 @@ def get_recipe_sidebar_filter_options(
 
     *name_search* is applied to all facet counts so they reflect the current search.
     """
-    result = {}
+    result: dict[str, dict[str, object]] = {}
     for field, label in filter_queries.RECIPE_FILTER_FIELDS:
         model_field = models.FujifilmRecipe._meta.get_field(field)
         is_integer = isinstance(model_field, db_models.IntegerField)
@@ -521,7 +525,7 @@ def get_recipe_sidebar_filter_options(
         all_values: set[str] = set(available_counts) | set(selected_values)
 
         if is_integer:
-            def _sort_key(v: str) -> tuple:
+            def _sort_key(v: str) -> tuple[int, int]:
                 try:
                     return (0 if v in available_counts else 1, int(v))
                 except (ValueError, TypeError):
@@ -561,7 +565,7 @@ class RecipeGalleryPage:
 @attrs.frozen
 class RecipeGalleryData:
     page_obj: RecipeGalleryPage
-    sidebar_options: dict
+    sidebar_options: dict[str, dict[str, object]]
 
 
 def get_recipe_gallery_data(

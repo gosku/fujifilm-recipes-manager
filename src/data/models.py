@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -155,15 +157,15 @@ class FujifilmExif(models.Model):
     # Factories
 
     @classmethod
-    def get_or_create(cls, **fields) -> "FujifilmExif":
-        obj, _ = cls.objects.get_or_create(**fields)  # type: ignore[attr-defined]
+    def get_or_create(cls, **fields: Any) -> "FujifilmExif":
+        obj, _ = cls.objects.get_or_create(**fields)
         return obj
 
     # Properties
 
-    def __str__(self):
+    def __str__(self) -> str:
         label = self.name or self.film_simulation or "Unknown"
-        return f"#{self.id} {label}"  # type: ignore[attr-defined]
+        return f"#{self.id} {label}"
 
 
 class FujifilmRecipe(models.Model):
@@ -236,7 +238,7 @@ class FujifilmRecipe(models.Model):
         monochromatic_color_warm_cool: object,
         monochromatic_color_magenta_green: object,
     ) -> "tuple[FujifilmRecipe, bool]":
-        return cls.objects.get_or_create(  # type: ignore[attr-defined]
+        return cls.objects.get_or_create(
             film_simulation=film_simulation,
             dynamic_range=dynamic_range,
             d_range_priority=d_range_priority,
@@ -265,11 +267,11 @@ class FujifilmRecipe(models.Model):
 
     # Properties
 
-    def __str__(self):
-        return f"#{self.id} {self.name}"  # type: ignore[attr-defined]
+    def __str__(self) -> str:
+        return f"#{self.id} {self.name}"
 
 
-class ImageQuerySet(models.QuerySet):
+class ImageQuerySet(models.QuerySet["Image"]):
     def without_recipe(self) -> "ImageQuerySet":
         return self.filter(fujifilm_recipe__isnull=True)
 
@@ -336,16 +338,16 @@ class Image(models.Model):
     # Factories
 
     @classmethod
-    def update_or_create(cls, *, filepath: str, **defaults) -> tuple["Image", bool]:
+    def update_or_create(cls, *, filepath: str, **defaults: object) -> tuple["Image", bool]:
         return cls.objects.update_or_create(filepath=filepath, defaults=defaults)
 
     # Mutators
 
-    def set_as_favorite(self):
+    def set_as_favorite(self) -> None:
         self.is_favorite = True
         self.save(update_fields=["is_favorite"])
 
-    def set_as_in_album(self):
+    def set_as_in_album(self) -> None:
         self.in_album = True
         self.save(update_fields=["in_album"])
 
@@ -355,5 +357,5 @@ class Image(models.Model):
 
     # Properties
 
-    def __str__(self):
-        return f"#{self.id} {self.filename}"  # type: ignore[attr-defined]
+    def __str__(self) -> str:
+        return f"#{self.id} {self.filename}"
