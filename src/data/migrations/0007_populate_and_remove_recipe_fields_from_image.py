@@ -1,5 +1,7 @@
 # Generated manually on 2026-03-12
 
+from typing import Any
+
 from django.db import migrations
 
 _RECIPE_FIELDS = [
@@ -22,7 +24,7 @@ _RECIPE_FIELDS = [
 ]
 
 
-def populate_recipes(apps, schema_editor):
+def populate_recipes(apps: Any, schema_editor: Any) -> None:
     Image = apps.get_model("data", "Image")
     FujifilmRecipe = apps.get_model("data", "FujifilmRecipe")
     for combo in Image.objects.values(*_RECIPE_FIELDS).distinct():

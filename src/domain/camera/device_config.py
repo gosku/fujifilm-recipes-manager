@@ -6,6 +6,7 @@ settings.PTP_DEVICE may be a dotted import path (str) or a callable directly.
 from __future__ import annotations
 
 import importlib
+from typing import cast
 
 from django.conf import settings as django_settings
 
@@ -18,4 +19,5 @@ def get_device() -> ptp_device.PTPDevice:
     if isinstance(factory, str):
         module_path, cls_name = factory.rsplit(".", 1)
         factory = getattr(importlib.import_module(module_path), cls_name)
-    return factory()
+    assert callable(factory)
+    return cast(ptp_device.PTPDevice, factory())

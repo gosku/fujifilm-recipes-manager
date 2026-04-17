@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.management.base import BaseCommand
 
 from src.application.usecases.recipes import fix_empty_grain_recipes as fix_uc
@@ -10,7 +12,7 @@ class Command(BaseCommand):
         "correct row, with images reassigned before deletion."
     )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: Any) -> None:
         result = fix_uc.fix_empty_grain_recipes()
 
         for recipe_id in result.updated_in_place:

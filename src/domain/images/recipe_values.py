@@ -254,7 +254,7 @@ def white_balance_from_exif(*, white_balance: str, color_temperature: str) -> st
     wb = WhiteBalance(white_balance)
     if wb == WhiteBalance.KELVIN:
         return f"{color_temperature}K"
-    return wb.value
+    return str(wb.value)
 
 
 def white_balance_fine_tune_from_exif(*, white_balance_fine_tune: str) -> tuple[int, int]:

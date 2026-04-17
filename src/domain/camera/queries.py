@@ -374,7 +374,7 @@ def recipe_to_ptp_values(recipe: image_dataclasses.FujifilmRecipeData) -> Recipe
     if drp and drp != "Off":
         dr_mode: int | None = None
     else:
-        dr_mode = constants.DRANGE_MODE_TO_PTP.get(recipe.dynamic_range) if recipe.dynamic_range not in (None, "") else None
+        dr_mode = constants.DRANGE_MODE_TO_PTP.get(recipe.dynamic_range) if recipe.dynamic_range is not None and recipe.dynamic_range != "" else None
 
     # --- Grain effect (always written) ---
     # Write 1 for any Off roughness; camera normalises to 6 (Off+Small) or
@@ -390,12 +390,12 @@ def recipe_to_ptp_values(recipe: image_dataclasses.FujifilmRecipeData) -> Recipe
     cfx: int = _CFX_TO_PTP.get(recipe.color_chrome_fx_blue, _CFX_TO_PTP["Off"])
 
     # --- Scaled int16 fields (value × 10) ---
-    color = int(recipe.color) * 10 if recipe.color not in (None, "") else None
+    color = int(recipe.color) * 10 if recipe.color is not None and recipe.color != "" else None
     # Sharpness and clarity always written; unset → 0 (normal)
     sharpness: int = int(recipe.sharpness) * 10 if recipe.sharpness not in (None, "", "N/A") else 0
     # Half-step values possible (e.g. +1.5); round after ×10.
-    highlight = round(float(recipe.highlight) * 10) if recipe.highlight not in (None, "") else None
-    shadow = round(float(recipe.shadow) * 10) if recipe.shadow not in (None, "") else None
+    highlight = round(float(recipe.highlight) * 10) if recipe.highlight is not None and recipe.highlight != "" else None
+    shadow = round(float(recipe.shadow) * 10) if recipe.shadow is not None and recipe.shadow != "" else None
     clarity: int = int(recipe.clarity) * 10 if recipe.clarity not in (None, "", "N/A") else 0
 
     # --- High ISO noise reduction (non-linear lookup; always written; unset → 0/normal) ---
@@ -403,8 +403,8 @@ def recipe_to_ptp_values(recipe: image_dataclasses.FujifilmRecipeData) -> Recipe
 
     # --- Monochromatic colour tuning (int16 ÷ 10; confirmed 2026-03-26 X-S10) ---
     # None when film sim is not monochromatic (field not applicable).
-    mono_wc = round(float(recipe.monochromatic_color_warm_cool) * 10) if recipe.monochromatic_color_warm_cool not in (None, "") else None
-    mono_mg = round(float(recipe.monochromatic_color_magenta_green) * 10) if recipe.monochromatic_color_magenta_green not in (None, "") else None
+    mono_wc = round(float(recipe.monochromatic_color_warm_cool) * 10) if recipe.monochromatic_color_warm_cool is not None and recipe.monochromatic_color_warm_cool != "" else None
+    mono_mg = round(float(recipe.monochromatic_color_magenta_green) * 10) if recipe.monochromatic_color_magenta_green is not None and recipe.monochromatic_color_magenta_green != "" else None
 
     return RecipePTPValues(
         FilmSimulation=film_sim,

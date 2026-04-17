@@ -1,7 +1,9 @@
+from typing import Any
+
 from django.db import migrations, models
 
 
-def _set_null_ratings_to_zero(apps, schema_editor):
+def _set_null_ratings_to_zero(apps: Any, schema_editor: Any) -> None:
     Image = apps.get_model("data", "Image")
     Image.objects.filter(rating__isnull=True).update(rating=0)
 

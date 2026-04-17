@@ -6,7 +6,7 @@ class InterfacesConfig(AppConfig):
     name = "src.interfaces"
     label = "interfaces"
 
-    def ready(self):
+    def ready(self) -> None:
         import structlog
         from django.conf import settings
 

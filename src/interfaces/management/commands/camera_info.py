@@ -23,7 +23,9 @@ Camera setup:
     Most Fujifilm bodies: MENU → CONNECTION SETTING → USB SETTING.
 """
 
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
 
 from src.application.usecases.camera import get_camera_info as get_camera_info_uc
 from src.domain.camera import ptp_device
@@ -32,7 +34,7 @@ from src.domain.camera import ptp_device
 class Command(BaseCommand):
     help = "Read camera identity and status over USB (read-only connectivity test)."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--slots",
             action="store_true",
@@ -40,7 +42,7 @@ class Command(BaseCommand):
             help="Also read the contents of each custom slot (C1–Cn).",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: Any) -> None:
         self.stdout.write("Connecting to camera via USB…")
 
         try:

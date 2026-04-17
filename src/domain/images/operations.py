@@ -5,7 +5,7 @@ from django import conf
 
 from src.data import models
 from src.domain.images import events, queries
-from src.domain.images.queries import NoFilmSimulationError  # noqa: F401 — re-exported
+from src.domain.images.queries import NoFilmSimulationError as NoFilmSimulationError
 from src.domain.recipes import operations as recipe_operations
 
 

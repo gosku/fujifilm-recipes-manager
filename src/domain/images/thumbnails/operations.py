@@ -48,14 +48,15 @@ def generate_thumbnail(*, original_path: Path, width: int) -> Path:
         # Apply EXIF orientation manually — avoids a second .load() call that
         # ImageOps.exif_transpose() would trigger internally.
         transpose_method = _ORIENTATION_TO_TRANSPOSE.get(orientation)
+        image: PILImage.Image = img
         if transpose_method is not None:
-            img = img.transpose(transpose_method)
+            image = image.transpose(transpose_method)
 
-        if img.width > width:
-            new_height = int(img.height * width / img.width)
-            img = img.resize((width, new_height), PILImage.Resampling.LANCZOS)
+        if image.width > width:
+            new_height = int(image.height * width / image.width)
+            image = image.resize((width, new_height), PILImage.Resampling.LANCZOS)
 
-        img.save(cache_path, format=fmt)
+        image.save(cache_path, format=fmt)
     return cache_path
 
 
