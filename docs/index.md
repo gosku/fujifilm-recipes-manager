@@ -17,6 +17,10 @@
 
 - [Contributing](contributing.md) — testing strategy, local environment setup, PR requirements, and review conventions
 
+## Troubleshooting
+
+- [Camera USB Access on Linux](camera_usb_access.md) — fixing "Resource busy" errors and udev setup
+
 ## Architecture
 
 - [ADR 001 — Camera Bridge](ADRs/001-camera-bridge.md) — decision to use PyUSB with raw PTP/USB for camera communication
