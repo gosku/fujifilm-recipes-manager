@@ -541,6 +541,40 @@ def _resolve_card_template(
     return card_templates.TEMPLATES.get(key, card_templates.LONG_LABEL)
 
 
+class RecipeCardPreview(generic.View):
+    def get(self, request: http.HttpRequest, recipe_id: int) -> http.HttpResponse:
+        image_id_raw = request.GET.get("image_id")
+        image_id = int(image_id_raw) if image_id_raw else None
+        template = _resolve_card_template(
+            label_style=request.GET.get("label_style", "long"),
+            bg_effect=request.GET.get("bg_effect", "blur"),
+        )
+        try:
+            preview_path = preview_recipe_card_uc.preview_recipe_card(
+                recipe_id=recipe_id,
+                image_id=image_id,
+                template=template,
+            )
+        except Exception:
+            structlog.get_logger().exception("Unexpected error generating recipe card preview")
+            return shortcuts.render(
+                request,
+                "recipes/partials/recipe_card_result.html",
+                {"error": "Could not generate preview."},
+            )
+        return shortcuts.render(
+            request,
+            "recipes/partials/recipe_card_result.html",
+            {
+                "preview_path": str(preview_path),
+                "recipe_id": recipe_id,
+                "image_id": image_id,
+                "label_style": request.GET.get("label_style", "long"),
+                "bg_effect": request.GET.get("bg_effect", "blur"),
+            },
+        )
+
+
 def recipe_card_preview_file_view(request: http.HttpRequest, recipe_id: int) -> http.FileResponse:
     image_id_raw = request.GET.get("image_id")
     image_id = int(image_id_raw) if image_id_raw else None
