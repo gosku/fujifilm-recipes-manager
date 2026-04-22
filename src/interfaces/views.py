@@ -24,6 +24,7 @@ from src.domain.images import filter_queries
 from src.domain.images import operations as image_operations
 from src.domain.images import queries as image_queries
 from src.domain.images.thumbnails import operations as thumbnail_operations
+from src.domain.recipes import dataclasses as recipe_dataclasses
 from src.domain.recipes import graph as recipe_graph
 from src.domain.recipes import operations as recipe_operations
 from src.domain.recipes import queries as recipe_queries
@@ -477,7 +478,7 @@ def import_recipes_from_uploaded_files_view(request: http.HttpRequest) -> http.H
         )
 
     files = [
-        import_recipes_uc.UploadedFile(name=f.name or "", content=f.read())
+        recipe_dataclasses.UploadedFile(name=f.name or "", content=f.read())
         for f in uploaded
     ]
 
