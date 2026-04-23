@@ -8,6 +8,7 @@ from src.application.usecases.recipes.import_recipes_from_uploaded_qr_cards impo
     import_recipes_from_uploaded_qr_cards,
 )
 from src.data import models
+from src.domain.images import events
 from src.domain.recipes.dataclasses import ImportRecipesResult, UploadedFile
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "fixtures" / "recipe_cards"
@@ -72,6 +73,18 @@ class TestImportRecipesFromUploadedQRCards:
         assert result.imported == ()
         assert result.failed == ("XS107114.JPG",)
 
+    def test_publishes_qr_not_found_event_when_image_has_no_qr(self, captured_logs) -> None:
+        non_card = uploaded_file_from_fixture("XS107114.JPG", fixtures_dir=NON_CARD_IMAGE_DIR)
+
+        import_recipes_from_uploaded_qr_cards(files=[non_card])
+
+        failure_events = [
+            e for e in captured_logs if e.get("event_type") == events.RECIPE_IMPORT_QR_CARD_FAILED
+        ]
+        assert len(failure_events) == 1
+        assert failure_events[0]["filename"] == "XS107114.JPG"
+        assert failure_events[0]["failure_reason"] == "qr_not_found"
+
     def test_records_failure_for_invalid_qr_payload(self, tmp_path: Path) -> None:
         bad = _qr_file(tmp_path, json.dumps({"v": 1, "wrong_key": "wrong"}), filename="bad.png")
 
@@ -79,6 +92,18 @@ class TestImportRecipesFromUploadedQRCards:
 
         assert result.imported == ()
         assert result.failed == ("bad.png",)
+
+    def test_publishes_invalid_payload_event_with_reason(self, tmp_path: Path, captured_logs) -> None:
+        bad = _qr_file(tmp_path, json.dumps({"v": 2}), filename="old_schema.png")
+
+        import_recipes_from_uploaded_qr_cards(files=[bad])
+
+        failure_events = [
+            e for e in captured_logs if e.get("event_type") == events.RECIPE_IMPORT_QR_CARD_FAILED
+        ]
+        assert len(failure_events) == 1
+        assert failure_events[0]["filename"] == "old_schema.png"
+        assert failure_events[0]["failure_reason"] == "unsupported_version"
 
     def test_continues_after_failure_and_processes_remaining_files(self) -> None:
         non_card = uploaded_file_from_fixture("XS107114.JPG", fixtures_dir=NON_CARD_IMAGE_DIR)
