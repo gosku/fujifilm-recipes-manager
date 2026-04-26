@@ -15,7 +15,7 @@ from src.domain.images import events
 from src.domain.recipes.cards import queries as card_queries
 from src.domain.recipes.cards import templates as card_templates
 
-_QR_SIZE = 200
+_QR_SIZE = 300
 _QR_MARGIN = 20
 _BLUR_RADIUS = 12
 _PANEL_ALPHA = 140  # 0-255 opacity of the text-readability overlay panel

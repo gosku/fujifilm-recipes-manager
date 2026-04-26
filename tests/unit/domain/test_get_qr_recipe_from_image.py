@@ -25,9 +25,7 @@ def _valid_payload() -> dict[str, object]:
 
 
 def _write_qr(tmp_path: Path, payload_str: str, *, filename: str = "qr.png") -> str:
-    # box_size=10 keeps the QR large enough for cv2.QRCodeDetector even before
-    # the detector's crop+upscale fallback kicks in.
-    img = qrcode.make(payload_str, box_size=10)
+    img = qrcode.make(payload_str)
     path = tmp_path / filename
     img.save(path)
     return str(path)
