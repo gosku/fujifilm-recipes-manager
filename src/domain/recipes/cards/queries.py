@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 
 import attrs
-import cv2
-import cv2.typing
+import piexif  # type: ignore[import-untyped]
+import zxingcpp  # type: ignore[import-not-found]
+from PIL import Image as PILImage
 
 from src.data import models
 from src.domain.images import dataclasses as image_dataclasses
@@ -246,40 +247,29 @@ def _check_payload_types(payload: dict[str, object], *, image_path: str) -> None
             raise InvalidQRRecipePayloadError(image_path=image_path, reason="type_mismatch")
 
 
-# The QR on a 1080-px recipe card is only 200 px wide — small enough that
-# cv2.QRCodeDetector.detectAndDecode() routinely fails to decode it in one pass.
-# Running detect() first to locate the QR, then cropping + upscaling that region
-# for decoding is reliable across both templates.
-_QR_CROP_PADDING_PX = 20
-_QR_DECODE_UPSCALE = 3
+# Prefix written by piexif before the payload when embedding recipe JSON.
+_EXIF_ASCII_PREFIX = b"ASCII\x00\x00\x00"
 
 
-def _decode_qr(img: cv2.typing.MatLike) -> str:
-    detector = cv2.QRCodeDetector()
-    data, _bbox, _rectified = detector.detectAndDecode(img)
-    if data:
-        return str(data)
-
-    retval, pts = detector.detect(img)
-    if not retval or pts is None:
+def _decode_qr(*, image_path: str) -> str:
+    try:
+        with PILImage.open(image_path) as pil_img:
+            results = zxingcpp.read_barcodes(pil_img)
+    except OSError:
         return ""
+    return results[0].text if results else ""
 
-    pts_int = pts.reshape(-1, 2).astype(int)
-    x0 = max(0, int(pts_int[:, 0].min()) - _QR_CROP_PADDING_PX)
-    y0 = max(0, int(pts_int[:, 1].min()) - _QR_CROP_PADDING_PX)
-    h, w = img.shape[:2]
-    x1 = min(w, int(pts_int[:, 0].max()) + _QR_CROP_PADDING_PX)
-    y1 = min(h, int(pts_int[:, 1].max()) + _QR_CROP_PADDING_PX)
-    crop = img[y0:y1, x0:x1]
-    if crop.size == 0:
+
+def _read_exif_recipe(*, image_path: str) -> str:
+    """Read the recipe JSON embedded in the EXIF UserComment field, or return an empty string."""
+    try:
+        exif = piexif.load(image_path)
+    except Exception:  # noqa: BLE001 — piexif raises bare Exception on malformed files
         return ""
-    upscaled = cv2.resize(
-        crop,
-        (crop.shape[1] * _QR_DECODE_UPSCALE, crop.shape[0] * _QR_DECODE_UPSCALE),
-        interpolation=cv2.INTER_CUBIC,
-    )
-    data, _bbox, _rectified = detector.detectAndDecode(upscaled)
-    return str(data)
+    user_comment = exif.get("Exif", {}).get(piexif.ExifIFD.UserComment, b"")
+    if not isinstance(user_comment, bytes) or not user_comment.startswith(_EXIF_ASCII_PREFIX):
+        return ""
+    return user_comment[len(_EXIF_ASCII_PREFIX):].decode("ascii", errors="replace")
 
 
 def get_qr_recipe_from_image(*, image_path: str) -> card_dataclasses.QRFujifilmRecipe:
@@ -291,11 +281,9 @@ def get_qr_recipe_from_image(*, image_path: str) -> card_dataclasses.QRFujifilmR
         QRFujifilmRecipe payload (bad JSON, unsupported schema version, unknown
         fields, or type mismatches).
     """
-    img = cv2.imread(image_path)
-    if img is None:
-        raise QRCodeNotFoundError(image_path=image_path)
-
-    data = _decode_qr(img)
+    data = _decode_qr(image_path=image_path)
+    if not data:
+        data = _read_exif_recipe(image_path=image_path)
     if not data:
         raise QRCodeNotFoundError(image_path=image_path)
 
