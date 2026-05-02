@@ -12,6 +12,7 @@ from django import shortcuts
 from django.views import generic
 from django.views.decorators import http as http_decorators
 
+from src.interfaces import forms as interface_forms
 from src.application.usecases.camera import get_camera_slots as get_camera_slots_uc
 from src.application.usecases.camera import push_recipe as push_recipe_uc
 from src.application.usecases.recipes import build_graph as build_graph_uc
@@ -25,6 +26,7 @@ from src.domain.images import filter_queries
 from src.domain.images import operations as image_operations
 from src.domain.images import queries as image_queries
 from src.domain.images.thumbnails import operations as thumbnail_operations
+from src.domain.recipes import constants as recipe_constants
 from src.domain.recipes import dataclasses as recipe_dataclasses
 from src.domain.recipes import graph as recipe_graph
 from src.domain.recipes import operations as recipe_operations
@@ -714,5 +716,21 @@ class CreateRecipeCard(generic.View):
 def recipe_card_file_view(request: http.HttpRequest, card_id: int) -> http.FileResponse:
     card = shortcuts.get_object_or_404(models.RecipeCard, pk=card_id)
     return http.FileResponse(Path(card.filepath).open("rb"), content_type="image/jpeg")
+
+
+class CreateRecipe(generic.FormView):
+    template_name = "recipes/create_recipe.html"
+    form_class = interface_forms.CreateRecipe
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context: dict[str, object] = super().get_context_data(**kwargs)
+        context["monochromatic_film_sims_json"] = json.dumps(
+            sorted(recipe_constants.MONOCHROMATIC_FILM_SIMULATIONS)
+        )
+        return context
+
+    def form_valid(self, form: interface_forms.CreateRecipe) -> http.HttpResponse:
+        # Submission not yet implemented.
+        return self.render_to_response(self.get_context_data(form=form))
 
 
