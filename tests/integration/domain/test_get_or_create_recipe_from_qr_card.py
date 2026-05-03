@@ -45,10 +45,8 @@ class TestGetOrCreateRecipeFromQRCard:
         # payload omits it.
         assert recipe.grain_roughness == "Off"
         assert recipe.grain_size == "Off"
-        # Colour-only fields default to "" when the payload omits them.
-        assert recipe.color_chrome_effect == ""
+        assert recipe.color_chrome_effect == "Off"
         assert recipe.color is None
-        # Monochrome fields round-trip back to Decimal.
         assert recipe.monochromatic_color_warm_cool is not None
         assert float(recipe.monochromatic_color_warm_cool) == -2.0
 

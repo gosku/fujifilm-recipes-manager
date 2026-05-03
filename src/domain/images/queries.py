@@ -12,6 +12,7 @@ from src.data import models
 from src.domain.images import dataclasses as image_dataclasses
 from src.domain.images import filter_queries
 from src.domain.images import recipe_values
+from src.domain.recipes import constants as recipe_constants
 
 class ImageNotFound(Exception):
     """Raised when no DB record matches the given image file."""
@@ -217,6 +218,7 @@ def read_image_exif(*, image_path: str) -> image_dataclasses.ImageExifData:
 def exif_to_recipe(*, exif: image_dataclasses.ImageExifData) -> image_dataclasses.FujifilmRecipeData:
     """Convert an ImageExifData instance to a FujifilmRecipeData."""
     film_simulation = recipe_values.film_simulation_from_exif(film_simulation=exif.film_simulation, color=exif.color).display_name
+    is_mono = film_simulation in recipe_constants.MONOCHROMATIC_FILM_SIMULATIONS
     d_range_priority = recipe_values.d_range_priority_from_exif(d_range_priority=exif.d_range_priority, d_range_priority_auto=exif.d_range_priority_auto)
     drp_active = d_range_priority.value != "Off"
     wb_red, wb_blue = recipe_values.white_balance_fine_tune_from_exif(white_balance_fine_tune=exif.white_balance_fine_tune)
@@ -237,9 +239,9 @@ def exif_to_recipe(*, exif: image_dataclasses.ImageExifData) -> image_dataclasse
         grain_size=None if grain_roughness == "Off" else exif.grain_effect_size,
         highlight=None if drp_active else recipe_values.highlight_from_exif(highlight_tone=exif.highlight_tone),
         shadow=None if drp_active else recipe_values.shadow_from_exif(shadow_tone=exif.shadow_tone),
-        color=recipe_values.color_from_exif(color=exif.color),
-        monochromatic_color_warm_cool=recipe_values.monochromatic_color_from_exif(value=exif.bw_adjustment),
-        monochromatic_color_magenta_green=recipe_values.monochromatic_color_from_exif(value=exif.bw_magenta_green),
+        color=None if is_mono else recipe_values.color_from_exif(color=exif.color),
+        monochromatic_color_warm_cool=recipe_values.monochromatic_color_from_exif(value=exif.bw_adjustment) if is_mono else None,
+        monochromatic_color_magenta_green=recipe_values.monochromatic_color_from_exif(value=exif.bw_magenta_green) if is_mono else None,
     )
 
 
