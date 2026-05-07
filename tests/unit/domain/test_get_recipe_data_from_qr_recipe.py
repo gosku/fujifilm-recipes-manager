@@ -140,3 +140,20 @@ class TestGetRecipeDataFromQRRecipe:
         result = card_queries.get_recipe_data_from_qr_recipe(qr_recipe=qr)
 
         assert result.name == "My Summer Recipe"
+
+    def test_nulls_drp_fields_when_drp_is_active(self) -> None:
+        qr = _valid_qr(d_range_priority="Auto", dynamic_range="DR100", highlight=1, shadow=-1)
+
+        result = card_queries.get_recipe_data_from_qr_recipe(qr_recipe=qr)
+
+        assert result.dynamic_range is None
+        assert result.highlight is None
+        assert result.shadow is None
+
+    def test_nulls_mono_fields_for_colour_sim_when_present_in_qr(self) -> None:
+        qr = _valid_qr(monochromatic_color_warm_cool=5.0, monochromatic_color_magenta_green=-3.0)
+
+        result = card_queries.get_recipe_data_from_qr_recipe(qr_recipe=qr)
+
+        assert result.monochromatic_color_warm_cool is None
+        assert result.monochromatic_color_magenta_green is None

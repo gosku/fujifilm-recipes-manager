@@ -10,6 +10,7 @@ from PIL import Image as PILImage
 from src.data import models
 from src.domain.images import dataclasses as image_dataclasses
 from src.domain.recipes import constants as recipe_constants
+from src.domain.recipes import normalization as recipe_normalization
 from src.domain.recipes import queries as recipe_queries
 from src.domain.recipes.cards import dataclasses as card_dataclasses
 from src.domain.recipes.cards import templates as card_templates
@@ -112,14 +113,24 @@ def _format_value(field: str, raw: object) -> str:
     return str(raw)
 
 
+_DRP_CONTROLLED_FIELDS: frozenset[str] = frozenset({
+    "dynamic_range",
+    "highlight",
+    "shadow",
+})
+
+
 def _is_applicable(recipe: models.FujifilmRecipe, field: str) -> bool:
     """Return False when a field is semantically inapplicable for this recipe."""
     is_monochromatic = recipe.film_simulation in recipe_constants.MONOCHROMATIC_FILM_SIMULATIONS
+    drp_active = recipe.d_range_priority != "Off"
     if field in _COLOR_ONLY_FIELDS and is_monochromatic:
         return False
     if field in _MONOCHROME_ONLY_FIELDS and not is_monochromatic:
         return False
     if field == _GRAIN_SIZE_FIELD and recipe.grain_roughness == "Off":
+        return False
+    if field in _DRP_CONTROLLED_FIELDS and drp_active:
         return False
     return True
 
@@ -322,63 +333,37 @@ def get_recipe_data_from_qr_recipe(
     Inverts the formatting decisions made by get_recipe_as_json and fills in
     canonical defaults for fields that the QR payload omits:
       - Decimal fields go from int/float back to signed string ("+1", "-1.5", "0").
-      - grain_size is None when grain_roughness is "Off" (inapplicable).
-      - color_chrome_effect/fx_blue default to "" for mono sims (inapplicable)
-        and "Off" for non-mono sims when absent.
+      - color_chrome_effect/fx_blue default to "Off" when absent.
       - sharpness/high_iso_nr/clarity default to "0" when absent.
-      - highlight/shadow default to "0" when DRP is "Off" and absent.
-      - color defaults to "0" for non-mono sims when absent; None for mono sims.
-      - monochromatic_color_* default to "0" for mono sims when absent; None otherwise.
-      - dynamic_range defaults to "" when DRP is "Off" and absent.
+      - highlight/shadow default to "0" when absent.
+      - color/monochromatic_color_* default to "0" when absent.
+      - dynamic_range defaults to "" when absent.
+
+    Inapplicable fields are then set to None by normalize_recipe_data():
+      - grain_size when grain_roughness is "Off".
+      - dynamic_range/highlight/shadow when DRP is active.
+      - color for mono sims; mono color fields for colour sims.
     """
-    is_mono = qr_recipe.film_simulation in recipe_constants.MONOCHROMATIC_FILM_SIMULATIONS
-    drp_active = qr_recipe.d_range_priority != "Off"
-
-    grain_size = None if qr_recipe.grain_roughness == "Off" else qr_recipe.grain_size
-
-    color_chrome_effect = qr_recipe.color_chrome_effect or "Off"
-    color_chrome_fx_blue = qr_recipe.color_chrome_fx_blue or "Off"
-
-    sharpness = _signed_decimal_or_none(qr_recipe.sharpness) or "0"
-    high_iso_nr = _signed_decimal_or_none(qr_recipe.high_iso_nr) or "0"
-    clarity = _signed_decimal_or_none(qr_recipe.clarity) or "0"
-
-    if drp_active:
-        dynamic_range = None
-        highlight = None
-        shadow = None
-    else:
-        dynamic_range = qr_recipe.dynamic_range if qr_recipe.dynamic_range is not None else ""
-        highlight = _signed_decimal_or_none(qr_recipe.highlight) or "0"
-        shadow = _signed_decimal_or_none(qr_recipe.shadow) or "0"
-
-    if is_mono:
-        color = None
-        monochromatic_color_warm_cool = _signed_decimal_or_none(qr_recipe.monochromatic_color_warm_cool) or "0"
-        monochromatic_color_magenta_green = _signed_decimal_or_none(qr_recipe.monochromatic_color_magenta_green) or "0"
-    else:
-        color = _signed_decimal_or_none(qr_recipe.color) or "0"
-        monochromatic_color_warm_cool = None
-        monochromatic_color_magenta_green = None
-
-    return image_dataclasses.FujifilmRecipeData(
-        name=qr_recipe.name or "",
-        film_simulation=qr_recipe.film_simulation,
-        grain_roughness=qr_recipe.grain_roughness,
-        d_range_priority=qr_recipe.d_range_priority,
-        white_balance=qr_recipe.white_balance,
-        white_balance_red=qr_recipe.white_balance_red,
-        white_balance_blue=qr_recipe.white_balance_blue,
-        color_chrome_effect=color_chrome_effect,
-        color_chrome_fx_blue=color_chrome_fx_blue,
-        sharpness=sharpness,
-        high_iso_nr=high_iso_nr,
-        clarity=clarity,
-        dynamic_range=dynamic_range,
-        grain_size=grain_size,
-        highlight=highlight,
-        shadow=shadow,
-        color=color,
-        monochromatic_color_warm_cool=monochromatic_color_warm_cool,
-        monochromatic_color_magenta_green=monochromatic_color_magenta_green,
+    return recipe_normalization.normalize_recipe_data(
+        image_dataclasses.FujifilmRecipeData(
+            name=qr_recipe.name or "",
+            film_simulation=qr_recipe.film_simulation,
+            grain_roughness=qr_recipe.grain_roughness,
+            d_range_priority=qr_recipe.d_range_priority,
+            white_balance=qr_recipe.white_balance,
+            white_balance_red=qr_recipe.white_balance_red,
+            white_balance_blue=qr_recipe.white_balance_blue,
+            color_chrome_effect=qr_recipe.color_chrome_effect or "Off",
+            color_chrome_fx_blue=qr_recipe.color_chrome_fx_blue or "Off",
+            sharpness=_signed_decimal_or_none(qr_recipe.sharpness) or "0",
+            high_iso_nr=_signed_decimal_or_none(qr_recipe.high_iso_nr) or "0",
+            clarity=_signed_decimal_or_none(qr_recipe.clarity) or "0",
+            dynamic_range=qr_recipe.dynamic_range if qr_recipe.dynamic_range is not None else "",
+            grain_size=qr_recipe.grain_size,
+            highlight=_signed_decimal_or_none(qr_recipe.highlight) or "0",
+            shadow=_signed_decimal_or_none(qr_recipe.shadow) or "0",
+            color=_signed_decimal_or_none(qr_recipe.color) or "0",
+            monochromatic_color_warm_cool=_signed_decimal_or_none(qr_recipe.monochromatic_color_warm_cool) or "0",
+            monochromatic_color_magenta_green=_signed_decimal_or_none(qr_recipe.monochromatic_color_magenta_green) or "0",
+        )
     )
