@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recipes</title>
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <script src="/static/js/multi-select.js"></script>
   <link rel="stylesheet" href="/static/css/brand.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -182,9 +183,9 @@
     .gallery-header {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
       padding: 1rem 2rem;
       flex-shrink: 0;
+      min-height: 4rem;
     }
 
     .recipe-gallery-scroll {
@@ -263,6 +264,61 @@
       grid-column: 1 / -1;
       color: #888;
       font-style: italic;
+    }
+
+    /* ── Multi-select ────────────────────────────────────────────────── */
+    .recipe-card .ms-checkbox {
+      position: absolute;
+      top: 0.6rem;
+      left: 0.6rem;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s, background 0.12s, border-color 0.12s;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .recipe-card:hover .ms-checkbox,
+    #recipe-gallery-results.ms-active .ms-checkbox {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .recipe-card .ms-checkbox:hover {
+      border-color: var(--color-accent);
+      background: rgba(239, 68, 68, 0.35);
+    }
+
+    .recipe-card .ms-check {
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+
+    .recipe-card.ms-selected .ms-checkbox {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .recipe-card.ms-selected .ms-check {
+      opacity: 1;
+    }
+
+    .recipe-card.ms-selected::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px solid var(--color-accent);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 1;
     }
 
     /* ── Header action buttons ───────────────────────────────────────── */
@@ -558,6 +614,21 @@
 
   <main class="main">
     <div class="gallery-header">
+      <div class="ms-toolbar" id="ms-toolbar" hidden>
+        <span class="ms-count">0 selected</span>
+        <button class="ms-cancel-btn" type="button">Cancel</button>
+        <div class="ms-actions-wrap">
+          <button class="ms-actions-btn" id="ms-actions-btn" type="button">
+            Actions
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="ms-actions-dropdown" id="ms-actions-dropdown" hidden>
+            <span class="ms-actions-empty">No actions available yet</span>
+          </div>
+        </div>
+      </div>
       <div class="header-actions">
         <a href="{% url 'create-recipe' %}" class="create-recipe-link-btn">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -726,6 +797,26 @@
       submitBtn.hidden = false;
     });
   })();
+</script>
+
+<script>
+  const recipeMultiSelect = new MultiSelectController({
+    containerSelector: '#recipe-gallery-results',
+    cardSelector: '.recipe-card',
+    toolbarSelector: '#ms-toolbar',
+  });
+
+  (function () {
+    var actionsBtn = document.getElementById('ms-actions-btn');
+    var actionsDropdown = document.getElementById('ms-actions-dropdown');
+    actionsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      actionsDropdown.hidden = !actionsDropdown.hidden;
+    });
+    document.addEventListener('click', function () {
+      actionsDropdown.hidden = true;
+    });
+  }());
 </script>
 
 <div id="recipe-detail-overlay" hidden></div>

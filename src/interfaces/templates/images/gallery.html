@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Image Gallery</title>
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <script src="/static/js/multi-select.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js"></script>
   <link rel="stylesheet" href="/static/css/brand.css">
@@ -306,6 +307,68 @@
       font-style: italic;
     }
 
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      padding: 1rem 2rem;
+      flex-shrink: 0;
+      min-height: 4rem;
+    }
+
+    /* ── Multi-select ────────────────────────────────────────────────── */
+    .image-card {
+      position: relative;
+    }
+
+    .image-card .ms-checkbox {
+      position: absolute;
+      top: 0.6rem;
+      left: 0.6rem;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #bbb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s, background 0.12s, border-color 0.12s;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .image-card:hover .ms-checkbox,
+    #gallery-results.ms-active .image-card .ms-checkbox {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .image-card .ms-checkbox:hover {
+      border-color: var(--color-accent);
+      background: var(--color-accent-light);
+    }
+
+    .image-card .ms-check {
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+
+    .image-card.ms-selected .ms-checkbox {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .image-card.ms-selected .ms-check {
+      opacity: 1;
+    }
+
+    .image-card.ms-selected {
+      outline: 3px solid var(--color-accent);
+      outline-offset: -3px;
+    }
+
     #detail-overlay {
       position: fixed;
       inset: 0;
@@ -470,7 +533,24 @@
 </aside>
 
 <main class="main">
-  <div class="gallery-scroll" style="padding-top: 1.5rem;">
+  <div class="gallery-header">
+    <div class="ms-toolbar" id="ms-toolbar" hidden>
+      <span class="ms-count">0 selected</span>
+      <button class="ms-cancel-btn" type="button">Cancel</button>
+      <div class="ms-actions-wrap">
+        <button class="ms-actions-btn" id="ms-actions-btn" type="button">
+          Actions
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="ms-actions-dropdown" id="ms-actions-dropdown" hidden>
+          <span class="ms-actions-empty">No actions available yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gallery-scroll">
     <div id="gallery-results">
       {% include "images/_gallery_results.html" %}
     </div>
@@ -490,6 +570,26 @@
 </main>
 
 </div><!-- .content-area -->
+
+<script>
+  const imageMultiSelect = new MultiSelectController({
+    containerSelector: '#gallery-results',
+    cardSelector: '.image-card',
+    toolbarSelector: '#ms-toolbar',
+  });
+
+  (function () {
+    var actionsBtn = document.getElementById('ms-actions-btn');
+    var actionsDropdown = document.getElementById('ms-actions-dropdown');
+    actionsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      actionsDropdown.hidden = !actionsDropdown.hidden;
+    });
+    document.addEventListener('click', function () {
+      actionsDropdown.hidden = true;
+    });
+  }());
+</script>
 
 <div id="detail-overlay" hidden></div>
 <div id="slot-overlay" hidden></div>
