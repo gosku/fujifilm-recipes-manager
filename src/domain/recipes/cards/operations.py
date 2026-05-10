@@ -3,12 +3,15 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+import attrs
 import piexif  # type: ignore[import-untyped]
 from PIL import Image as PILImage
 from PIL import ImageDraw, ImageFilter, ImageFont
 
 import qrcode  # type: ignore[import-untyped]
 import qrcode.image.pil  # type: ignore[import-untyped]
+
+from django.db import transaction
 
 from src.data import models
 from src.domain.images import events
@@ -241,3 +244,46 @@ def create_recipe_card(
         template=template.template_name,
     )
     return card
+
+
+@attrs.frozen
+class RecipeCardNotFoundError(Exception):
+    """
+    Raised when no RecipeCard with the given ID exists.
+    """
+
+    card_id: int
+
+
+def remove_recipe_card(*, card_id: int, remove_file: bool) -> None:
+    """
+    Delete the RecipeCard record and optionally remove its JPEG file from the filesystem.
+
+    Uses atomic(durable=True) so this block is never nested inside an outer
+    transaction. This guarantees the DB deletion commits before the file is
+    removed — no outer rollback can undo the DB change after the file is gone.
+
+    :raises RecipeCardNotFoundError: If no RecipeCard with *card_id* exists.
+    """
+    try:
+        card = models.RecipeCard.objects.get(pk=card_id)
+    except models.RecipeCard.DoesNotExist:
+        raise RecipeCardNotFoundError(card_id=card_id)
+
+    recipe_id = card.recipe_id
+    filepath = card.filepath
+
+    with transaction.atomic(durable=True):
+        card.delete()
+        if remove_file:
+            path = Path(filepath)
+            if path.exists():
+                path.unlink()
+
+    events.publish_event(
+        event_type=events.RECIPE_CARD_REMOVED,
+        card_id=card_id,
+        recipe_id=recipe_id,
+        filepath=filepath,
+        remove_file=remove_file,
+    )
