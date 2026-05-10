@@ -9,6 +9,7 @@ from src.domain.images import events
 from src.domain.images import queries as image_queries
 from src.domain.recipes import normalization as recipe_normalization
 from src.domain.recipes import validation as recipe_validation
+from src.domain.recipes.cards import operations as card_operations
 from src.domain.recipes.cards import queries as card_queries
 
 
@@ -204,4 +205,48 @@ def set_recipe_name(*, recipe: models.FujifilmRecipe, name: str) -> None:
         event_type=events.RECIPE_IMAGE_UPDATED,
         name=name,
         recipe_id=recipe.pk,
+    )
+
+
+@attrs.frozen
+class RecipeHasImagesError(Exception):
+    """
+    Raised when a recipe cannot be deleted because it still has associated Images.
+    """
+
+    recipe_id: int
+    image_count: int
+    name: str
+
+
+def remove_recipe(*, recipe_id: int, remove_recipe_card_file: bool) -> None:
+    """
+    Delete a FujifilmRecipe and all its associated RecipeCards.
+
+    Removes each RecipeCard explicitly via remove_recipe_card before deleting
+    the recipe, then publishes a recipe.removed event. If remove_recipe_card_file
+    is True, the JPEG file for each card is also removed from the filesystem.
+
+    :raises RecipeNotFoundError: If no recipe with *recipe_id* exists.
+    :raises RecipeHasImagesError: If the recipe has one or more Images associated to it.
+    """
+    try:
+        recipe = models.FujifilmRecipe.objects.get(pk=recipe_id)
+    except models.FujifilmRecipe.DoesNotExist:
+        raise RecipeNotFoundError(recipe_id=recipe_id)
+
+    image_count = models.Image.objects.filter(fujifilm_recipe_id=recipe_id).count()
+    if image_count > 0:
+        raise RecipeHasImagesError(recipe_id=recipe_id, image_count=image_count, name=recipe.name)
+
+    for card in models.RecipeCard.objects.filter(recipe_id=recipe_id):
+        card_operations.remove_recipe_card(card_id=card.pk, remove_file=remove_recipe_card_file)
+
+    recipe_name = recipe.name
+    recipe.delete()
+
+    events.publish_event(
+        event_type=events.RECIPE_REMOVED,
+        recipe_id=recipe_id,
+        recipe_name=recipe_name,
     )
