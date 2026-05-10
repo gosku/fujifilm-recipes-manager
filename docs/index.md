@@ -26,4 +26,7 @@
 - [ADR 002 — Recipe Relationship Graph](ADRs/002-recipe-relationship-graph.md) — graph definition, topology decisions, and the two complementary views
 - [ADR 003 — Dual Install Modes](ADRs/003-dual-install-modes.md) — SQLite + sequential vs PostgreSQL + Celery, and why a single-writer queue pattern was ruled out
 - [ADR 004 — Recipe Import File Picker](ADRs/004-recipe-import-file-picker.md) — browser file upload over native dialog or Tauri, and which layer owns the tempfile
+- [ADR 005 — Recipe Sharing via Image Cards](ADRs/005-recipe-sharing-via-image-cards.md) — recipe sharing via image cards with embedded QR codes
+- [ADR 006 — QR Decode Library and Minimum QR Code Size](ADRs/006-qr-decode-library-and-size.md) — QR decode library choice and minimum QR code size
+- [ADR 007 — Normalize Recipe Data Before Storage](ADRs/007-normalize-recipe-data.md) — normalizing recipe data before storage
 

@@ -77,6 +77,14 @@ Alternatively, you can **create a recipe manually** using the _Create Recipe_ bu
 This opens a form where you can dial in every parameter — film simulation, tone, grain,
 white balance, and more — without needing a source image or card.
 
+Recipes can be **deleted** using the multi-select mode. Click any recipe card's checkbox
+(or click a card while another is already selected) to enter selection mode, then open the
+_Actions_ menu and choose _Delete recipes_. A confirmation modal lists how many recipes will
+be removed and offers an optional checkbox to also delete any recipe card files generated for
+those recipes. Recipes that still have images associated to them cannot be deleted; the modal
+reports these as failures and leaves them untouched. After a fully successful deletion the
+page reloads automatically when you close the modal.
+
 ![Recipes explorer](images/recipes_explorer.jpg)
 
 ![Create recipe manually](images/create_recipe_manually.jpg)
