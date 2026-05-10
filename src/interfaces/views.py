@@ -22,6 +22,7 @@ from src.application.usecases.recipes import create_recipe_manually as create_re
 from src.application.usecases.recipes import import_recipes_from_uploaded_files as import_recipes_uc
 from src.application.usecases.recipes import import_recipes_from_uploaded_qr_cards as import_qr_cards_uc
 from src.application.usecases.recipes import preview_recipe_card as preview_recipe_card_uc
+from src.application.usecases.recipes import remove_recipes as remove_recipes_uc
 from src.data import models
 from src.domain.camera import ptp_device
 from src.domain.images import dataclasses as image_dataclasses
@@ -481,6 +482,37 @@ def recipe_compare_image_view(request: http.HttpRequest, recipe_id: int, image_i
         "prev_id": page.prev_id,
         "next_id": page.next_id,
     })
+
+
+class RemoveRecipes(generic.View):
+    def post(self, request: http.HttpRequest) -> http.HttpResponse:
+        recipe_ids_raw = request.POST.getlist("recipe_ids")
+        try:
+            recipe_ids = [int(pk) for pk in recipe_ids_raw]
+        except (ValueError, TypeError):
+            return http.HttpResponseBadRequest("recipe_ids must be integers")
+        remove_recipe_card_file = request.POST.get("remove_recipe_card_file") == "on"
+        try:
+            result = remove_recipes_uc.remove_recipes(
+                recipe_ids=recipe_ids,
+                remove_recipe_card_file=remove_recipe_card_file,
+            )
+        except Exception:
+            structlog.get_logger().exception("Unexpected error in RemoveRecipes.post")
+            return shortcuts.render(
+                request,
+                "recipes/partials/remove_recipes_result.html",
+                {"error": "An unexpected error occurred. Please try again."},
+            )
+        return shortcuts.render(
+            request,
+            "recipes/partials/remove_recipes_result.html",
+            {
+                "removed_count": result.removed_count,
+                "failures": result.failures,
+                "all_succeeded": not result.failures,
+            },
+        )
 
 
 @http_decorators.require_POST

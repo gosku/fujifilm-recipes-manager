@@ -19,6 +19,14 @@ class RemoveRecipeFailure:
     reason: RemoveRecipeFailureReason
     name: str | None
 
+    @property
+    def is_not_found(self) -> bool:
+        return self.reason == RemoveRecipeFailureReason.NOT_FOUND
+
+    @property
+    def is_has_images(self) -> bool:
+        return self.reason == RemoveRecipeFailureReason.HAS_IMAGES
+
 
 @attrs.frozen
 class RemoveRecipesResult:

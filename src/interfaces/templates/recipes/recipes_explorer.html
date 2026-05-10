@@ -583,6 +583,85 @@
       font-size: 0.8rem;
       color: #666;
     }
+
+    /* ── Multi-select action options ────────────────────────────────── */
+    .ms-actions-option {
+      display: block;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 0.875rem;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .ms-actions-option:hover { background: #f5f5f5; }
+
+    /* ── Delete recipes modal ────────────────────────────────────────── */
+    .delete-confirm__checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #444;
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+
+    .delete-confirm__checkbox-label input[type="checkbox"] {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      accent-color: var(--color-accent);
+    }
+
+    .delete-confirm__actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .delete-confirm__no-btn {
+      padding: 0.5rem 1.25rem;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .delete-confirm__no-btn:hover { background: #f0f0f0; }
+
+    .delete-confirm__yes-btn {
+      padding: 0.5rem 1.25rem;
+      background: var(--color-accent);
+      border: none;
+      border-radius: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .delete-confirm__yes-btn:hover { background: var(--color-accent-dark); }
+
+    /* ── Remove result messages ─────────────────────────────────────── */
+    .remove-result { margin-top: 1.25rem; }
+
+    .remove-result__message { font-size: 0.875rem; margin-bottom: 0.35rem; }
+    .remove-result__message--success { color: var(--color-accent); font-weight: 600; }
+    .remove-result__message--warning { color: #b36b2d; font-weight: 600; }
+    .remove-result--error .remove-result__message { color: #c0392b; }
+
+    .remove-result__failures {
+      margin: 0.25rem 0 0 1rem;
+      font-size: 0.8rem;
+      color: #666;
+    }
   </style>
 </head>
 <body>
@@ -625,7 +704,9 @@
             </svg>
           </button>
           <div class="ms-actions-dropdown" id="ms-actions-dropdown" hidden>
-            <span class="ms-actions-empty">No actions available yet</span>
+            <button class="ms-actions-option" id="ms-delete-recipes-btn" type="button">
+              Delete recipes
+            </button>
           </div>
         </div>
       </div>
@@ -696,6 +777,34 @@
         <div id="import-result"></div>
       </div>
     </div>
+    <!-- Delete recipes confirmation modal -->
+    <div class="import-overlay" id="delete-recipes-overlay" hidden>
+      <div class="import-modal" role="dialog" aria-modal="true" aria-labelledby="delete-recipes-modal-title">
+        <button class="import-modal__close" id="close-delete-recipes-btn" aria-label="Close">&#x2715;</button>
+        <div id="delete-recipes-modal-body">
+          <h2 id="delete-recipes-modal-title">Delete Recipes</h2>
+          <p class="import-modal__desc">
+            Are you sure you want to delete these <strong id="delete-recipes-count">0</strong> recipes?
+          </p>
+          <form id="delete-recipes-form"
+                hx-post="{% url 'recipes-delete' %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#delete-recipes-modal-body"
+                hx-swap="innerHTML">
+            <div id="delete-recipes-pks-container"></div>
+            <label class="delete-confirm__checkbox-label">
+              <input type="checkbox" name="remove_recipe_card_file">
+              Also delete recipe card files generated for the recipes
+            </label>
+            <div class="delete-confirm__actions">
+              <button type="button" class="delete-confirm__no-btn" id="delete-recipes-no-btn">No</button>
+              <button type="submit" class="delete-confirm__yes-btn">Yes, delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="recipe-gallery-scroll">
       <div id="recipe-gallery-results" class="recipe-grid">
         {% include "recipes/includes/recipe_results.html" %}
@@ -815,6 +924,64 @@
     });
     document.addEventListener('click', function () {
       actionsDropdown.hidden = true;
+    });
+  }());
+</script>
+
+<script>
+  (function () {
+    var deleteOverlay    = document.getElementById('delete-recipes-overlay');
+    var closeDeleteBtn   = document.getElementById('close-delete-recipes-btn');
+    var _allSucceeded    = false;
+
+    // Snapshot the confirm HTML once so we can restore it when re-opening.
+    var _confirmHTML = document.getElementById('delete-recipes-modal-body').innerHTML;
+
+    function handleClose() {
+      deleteOverlay.hidden = true;
+      if (_allSucceeded) {
+        _allSucceeded = false;
+        location.reload();
+      }
+    }
+
+    function openDeleteModal() {
+      _allSucceeded = false;
+
+      // Restore the confirm form (in case a previous submission replaced it with results).
+      var body = document.getElementById('delete-recipes-modal-body');
+      body.innerHTML = _confirmHTML;
+      htmx.process(body);
+
+      var pks = recipeMultiSelect.getSelectedPks();
+      document.getElementById('delete-recipes-count').textContent = pks.length;
+      var container = document.getElementById('delete-recipes-pks-container');
+      pks.forEach(function (pk) {
+        var input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'recipe_ids';
+        input.value = pk;
+        container.appendChild(input);
+      });
+
+      deleteOverlay.hidden = false;
+      document.getElementById('ms-actions-dropdown').hidden = true;
+    }
+
+    document.getElementById('ms-delete-recipes-btn').addEventListener('click', openDeleteModal);
+    closeDeleteBtn.addEventListener('click', handleClose);
+
+    // Delegate "No" button and backdrop clicks (No is inside modal body and gets replaced by HTMX).
+    deleteOverlay.addEventListener('click', function (e) {
+      if (e.target === deleteOverlay || e.target.closest('#delete-recipes-no-btn')) {
+        handleClose();
+      }
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail.target.id !== 'delete-recipes-modal-body') return;
+      var resultEl = e.detail.target.querySelector('[data-all-succeeded]');
+      _allSucceeded = !!(resultEl && resultEl.dataset.allSucceeded === 'true');
     });
   }());
 </script>

@@ -1,0 +1,35 @@
+{% if error %}
+<div class="remove-result remove-result--error" data-all-succeeded="false">
+  <p class="remove-result__message">{{ error }}</p>
+</div>
+
+{% else %}
+<div class="remove-result" data-all-succeeded="{{ all_succeeded|yesno:'true,false' }}">
+  {% if removed_count %}
+  <p class="remove-result__message remove-result__message--success">
+    {{ removed_count }} recipe{{ removed_count|pluralize }} deleted.
+  </p>
+  {% endif %}
+
+  {% if failures %}
+  <p class="remove-result__message remove-result__message--warning">
+    {{ failures|length }} recipe{{ failures|length|pluralize }} could not be deleted:
+  </p>
+  <ul class="remove-result__failures">
+    {% for failure in failures %}
+    <li>
+      {% if failure.is_has_images %}
+      <strong>{{ failure.name }}</strong> — has associated images.
+      {% elif failure.is_not_found %}
+      Recipe #{{ failure.recipe_id }} — not found.
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if not removed_count and not failures %}
+  <p class="remove-result__message">No recipes were deleted.</p>
+  {% endif %}
+</div>
+{% endif %}
