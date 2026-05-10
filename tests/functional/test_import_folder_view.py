@@ -5,7 +5,6 @@ import pytest
 from bs4 import BeautifulSoup
 from django.test import override_settings
 
-from src.application.usecases.images import process_images as process_images_uc
 from src.application.usecases.images.process_images import (
     InvalidFolderError,
     import_images_from_folder,
@@ -98,7 +97,10 @@ class TestImportFolderViewSuccess:
         assert soup.find(class_="import-result--empty") is not None
 
     def test_unexpected_exception_returns_error(self, client):
-        with patch.object(process_images_uc, "import_images_from_folder", side_effect=RuntimeError("boom")):
+        with patch(
+            "src.domain.images.queries.read_image_exif",
+            side_effect=RuntimeError("boom"),
+        ):
             response = client.post(
                 "/images/import/",
                 {"folder": FIXTURES_DIR},

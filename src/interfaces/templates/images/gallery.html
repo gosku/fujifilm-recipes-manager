@@ -144,7 +144,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 2rem 2rem 1rem;
+      padding: 0.75rem 2rem;
       flex-shrink: 0;
     }
 
@@ -215,28 +215,35 @@
 
     .image-card {
       min-width: 0;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 0.5rem;
-      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #1a1a1a no-repeat center/cover;
+      height: 260px;
     }
 
     .image-thumbnail {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: 300px;
-      object-fit: contain;
+      height: 100%;
+      object-fit: cover;
       display: block;
-      border-radius: 4px;
-      margin-bottom: 0.5rem;
-      background: #f0f0f0;
+    }
+
+    .image-card__overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0.75rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%);
     }
 
     .image-recipe {
-      display: block;
       font-weight: 600;
-      font-size: 1rem;
-      color: #222;
-      margin-bottom: 0.15rem;
+      font-size: 0.9rem;
+      color: #fff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -247,17 +254,16 @@
       justify-content: space-between;
       align-items: baseline;
       gap: 0.5rem;
-      margin-bottom: 0.15rem;
     }
 
     .image-exposure {
-      font-size: 0.9rem;
-      color: #555;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.75);
     }
 
     .image-filename {
-      font-size: 0.85rem;
-      color: #888;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.55);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -268,7 +274,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 0.25rem;
-      margin-bottom: 0.3rem;
+      margin-top: 0.25rem;
     }
 
     .recipe-label {
@@ -287,8 +293,8 @@
     .rl-hl, .rl-sh,
     .rl-co, .rl-srp,
     .rl-ns, .rl-cl {
-      background: #eef0f3;
-      color: #3d4754;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.85);
     }
 
     .image-rating {
@@ -307,14 +313,6 @@
       font-style: italic;
     }
 
-    .gallery-header {
-      display: flex;
-      align-items: center;
-      padding: 1rem 2rem;
-      flex-shrink: 0;
-      min-height: 4rem;
-    }
-
     /* ── Multi-select ────────────────────────────────────────────────── */
     .image-card {
       position: relative;
@@ -327,8 +325,8 @@
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: #fff;
-      border: 2px solid #bbb;
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgba(255,255,255,0.65);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -508,26 +506,27 @@
 
     /* Import trigger button */
     .import-trigger-btn {
-      padding: 0.4rem 1rem;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #555;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.85rem;
+      background: var(--color-accent);
+      border: none;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      transition: background 0.15s;
     }
 
     .import-trigger-btn:hover {
-      background: #f0fdf4;
-      border-color: #2db37a;
-      color: #2db37a;
+      background: #dc2626;
     }
 
     .import-trigger-btn:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 2px rgba(45,179,122,0.3);
+      box-shadow: 0 0 0 2px rgba(239,68,68,0.4);
     }
 
     /* Import overlay */
@@ -828,12 +827,14 @@
         </div>
       </div>
     </div>
+    <button class="import-trigger-btn" onclick="openImportOverlay()" style="margin-left: auto;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Add Images
+    </button>
   </div>
   <div class="gallery-scroll">
-  <div class="gallery-header">
-    <h1>Images</h1>
-    <button class="import-trigger-btn" onclick="openImportOverlay()">Add Image</button>
-  </div>
   <div class="gallery-scroll">
     <div id="gallery-results">
       {% include "images/_gallery_results.html" %}
