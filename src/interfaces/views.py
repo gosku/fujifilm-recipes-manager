@@ -327,7 +327,7 @@ def recipe_detail_view(request: http.HttpRequest, recipe_id: int) -> http.HttpRe
         detail = recipe_queries.get_recipe_detail(recipe_id=recipe_id)
     except models.FujifilmRecipe.DoesNotExist:
         raise http.Http404
-    ctx = {"recipe": detail.recipe, "is_monochromatic": detail.is_monochromatic, "is_editable": detail.is_editable}
+    ctx = {"recipe": detail.recipe, "is_monochromatic": detail.is_monochromatic, "settings_editable": detail.settings_editable}
     if request.headers.get("HX-Request"):
         return shortcuts.render(request, "recipes/partials/recipe_detail.html", ctx)
     return shortcuts.render(request, "recipes/recipe_detail.html", ctx)
@@ -809,9 +809,50 @@ class EditRecipe(generic.FormView):  # type: ignore[type-arg]
             "monochromatic_color_magenta_green": r.monochromatic_color_magenta_green,
         }
 
+    def get_form_kwargs(self) -> dict[str, object]:
+        kwargs = super().get_form_kwargs()
+        if self.request.method == "POST" and not recipe_queries.recipe_is_editable(recipe_id=self.recipe.pk):
+            # Settings fields are disabled in the form when the recipe has images,
+            # so they are not submitted. Inject the current recipe values so the
+            # form validates without errors on those fields.
+            data = kwargs["data"].copy()
+            r = self.recipe
+            wb_value, kelvin = _parse_white_balance_for_form(r.white_balance)
+            settings_defaults: dict[str, str] = {
+                "film_simulation": r.film_simulation,
+                "dynamic_range": r.dynamic_range or "",
+                "d_range_priority": r.d_range_priority,
+                "grain_roughness": r.grain_roughness,
+                "grain_size": r.grain_size or "",
+                "color_chrome_effect": r.color_chrome_effect,
+                "color_chrome_fx_blue": r.color_chrome_fx_blue,
+                "white_balance": wb_value,
+                "white_balance_red": str(r.white_balance_red),
+                "white_balance_blue": str(r.white_balance_blue),
+                # required=False fields: omit when None so the form cleans them to None,
+                # matching what recipe_from_db produces for null DB values.
+                **({"highlight": str(r.highlight)} if r.highlight is not None else {}),
+                **({"shadow": str(r.shadow)} if r.shadow is not None else {}),
+                **({"color": str(r.color)} if r.color is not None else {}),
+                **({"monochromatic_color_warm_cool": str(r.monochromatic_color_warm_cool)} if r.monochromatic_color_warm_cool is not None else {}),
+                **({"monochromatic_color_magenta_green": str(r.monochromatic_color_magenta_green)} if r.monochromatic_color_magenta_green is not None else {}),
+                # required fields: default to "0" when null (matches recipe_from_db's "or '0'" fallback).
+                "sharpness": str(r.sharpness) if r.sharpness is not None else "0",
+                "high_iso_nr": str(r.high_iso_nr) if r.high_iso_nr is not None else "0",
+                "clarity": str(r.clarity) if r.clarity is not None else "0",
+            }
+            if kelvin is not None:
+                settings_defaults["kelvin_temperature"] = str(kelvin)
+            for key, value in settings_defaults.items():
+                if key not in data:
+                    data[key] = value
+            kwargs["data"] = data
+        return kwargs
+
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context: dict[str, object] = super().get_context_data(**kwargs)
         context["recipe"] = self.recipe
+        context["is_settings_editable"] = recipe_queries.recipe_is_editable(recipe_id=self.recipe.pk)
         context["monochromatic_film_sims_json"] = json.dumps(
             sorted(recipe_constants.MONOCHROMATIC_FILM_SIMULATIONS)
         )
@@ -851,7 +892,7 @@ class EditRecipe(generic.FormView):  # type: ignore[type-arg]
         try:
             update_recipe_manually_uc.update_recipe_manually(recipe=self.recipe, data=recipe_data)
         except update_recipe_manually_uc.RecipeCannotBeEditedError:
-            form.add_error(None, "This recipe cannot be edited because it already has images associated to it.")
+            form.add_error(None, "This recipe's settings cannot be changed because it has associated images. You can still edit the name.")
             return self.form_invalid(form)
         except update_recipe_manually_uc.RecipeAlreadyExistsError:
             form.add_error(None, "A recipe with these settings already exists.")

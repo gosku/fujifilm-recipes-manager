@@ -27,6 +27,24 @@ def _parse_numeric(*, s: str | None) -> Decimal | None:
     return Decimal(s)
 
 
+def _settings_values_equal(field: str, a: object, b: object) -> bool:
+    """
+    Compare two FujifilmRecipeData field values for equality.
+
+    Decimal fields may be formatted differently between sources ('+2' from
+    recipe_from_db vs '2' from the form), so they are compared as Decimal
+    values to avoid false positives in the settings-changing check.
+    """
+    if field in recipe_queries.DECIMAL_FIELDS:
+        try:
+            a_dec = Decimal(str(a)) if a is not None else None
+            b_dec = Decimal(str(b)) if b is not None else None
+            return a_dec == b_dec
+        except Exception:  # noqa: BLE001 — fall back to direct comparison on unexpected values
+            pass
+    return a == b
+
+
 def get_or_create_recipe_from_data(
     *, data: image_dataclasses.FujifilmRecipeData,
 
@@ -223,7 +241,7 @@ class RecipeHasImagesError(Exception):
 @attrs.frozen
 class RecipeCannotBeEditedError(Exception):
     """
-    Raised when a recipe cannot be edited because it has associated Images.
+    Raised when the settings fields of a recipe cannot be changed because it has associated Images.
     """
 
     recipe_id: int
@@ -242,51 +260,63 @@ class RecipeSettingsConflictError(Exception):
 
 def update_recipe(*, recipe: models.FujifilmRecipe, data: image_dataclasses.FujifilmRecipeData) -> None:
     """
-    Update the settings of an existing FujifilmRecipe from the given data.
+    Update an existing FujifilmRecipe from the given data.
 
-    Normalises and validates *data* before writing. All recipe fields are
-    overwritten; ``recipe.name`` is updated only when ``data.name`` is non-empty.
+    Normalises *data* before comparing. Settings fields (film simulation, tone
+    curves, etc.) are only written when they differ from the current values and
+    the recipe has no associated Images. Metadata fields (name) are always
+    writable regardless of image association.
 
-    :raises RecipeCannotBeEditedError: If the recipe has one or more Images associated to it.
+    :raises RecipeCannotBeEditedError: If settings fields changed but the recipe has associated Images.
     :raises RecipeSettingsConflictError: If the new settings would duplicate an existing recipe.
     """
-    if not recipe_queries.recipe_is_editable(recipe_id=recipe.pk):
-        image_count = models.Image.objects.filter(fujifilm_recipe_id=recipe.pk).count()
-        raise RecipeCannotBeEditedError(
-            recipe_id=recipe.pk,
-            image_count=image_count,
-            name=recipe.name,
-        )
-
     data = recipe_normalization.normalize_recipe_data(data)
-    recipe_validation.validate_recipe_data(data)
+    current_data = recipe_queries.recipe_from_db(recipe=recipe)
 
-    name = data.name if data.name else recipe.name
-    try:
-        with transaction.atomic():
-            recipe.update_settings(
-                film_simulation=data.film_simulation,
-                dynamic_range=data.dynamic_range or "",
-                d_range_priority=data.d_range_priority,
-                grain_roughness=data.grain_roughness,
-                grain_size=data.grain_size if data.grain_size is not None else "Off",
-                color_chrome_effect=data.color_chrome_effect,
-                color_chrome_fx_blue=data.color_chrome_fx_blue,
-                white_balance=data.white_balance,
-                white_balance_red=data.white_balance_red,
-                white_balance_blue=data.white_balance_blue,
-                highlight=_parse_numeric(s=data.highlight),
-                shadow=_parse_numeric(s=data.shadow),
-                color=_parse_numeric(s=data.color),
-                sharpness=_parse_numeric(s=data.sharpness),
-                high_iso_nr=_parse_numeric(s=data.high_iso_nr),
-                clarity=_parse_numeric(s=data.clarity),
-                monochromatic_color_warm_cool=_parse_numeric(s=data.monochromatic_color_warm_cool),
-                monochromatic_color_magenta_green=_parse_numeric(s=data.monochromatic_color_magenta_green),
-                name=name,
+    settings_changing = any(
+        not _settings_values_equal(field, getattr(data, field), getattr(current_data, field))
+        for field in recipe_queries.RECIPE_FIELDS
+    )
+
+    if settings_changing:
+        recipe_validation.validate_recipe_data(data)
+        if not recipe_queries.recipe_is_editable(recipe_id=recipe.pk):
+            image_count = models.Image.objects.filter(fujifilm_recipe_id=recipe.pk).count()
+            raise RecipeCannotBeEditedError(
+                recipe_id=recipe.pk,
+                image_count=image_count,
+                name=recipe.name,
             )
-    except IntegrityError:
-        raise RecipeSettingsConflictError(recipe_id=recipe.pk)
+        name = data.name if data.name else recipe.name
+        try:
+            with transaction.atomic():
+                recipe.update_settings(
+                    film_simulation=data.film_simulation,
+                    dynamic_range=data.dynamic_range or "",
+                    d_range_priority=data.d_range_priority,
+                    grain_roughness=data.grain_roughness,
+                    grain_size=data.grain_size if data.grain_size is not None else "Off",
+                    color_chrome_effect=data.color_chrome_effect,
+                    color_chrome_fx_blue=data.color_chrome_fx_blue,
+                    white_balance=data.white_balance,
+                    white_balance_red=data.white_balance_red,
+                    white_balance_blue=data.white_balance_blue,
+                    highlight=_parse_numeric(s=data.highlight),
+                    shadow=_parse_numeric(s=data.shadow),
+                    color=_parse_numeric(s=data.color),
+                    sharpness=_parse_numeric(s=data.sharpness),
+                    high_iso_nr=_parse_numeric(s=data.high_iso_nr),
+                    clarity=_parse_numeric(s=data.clarity),
+                    monochromatic_color_warm_cool=_parse_numeric(s=data.monochromatic_color_warm_cool),
+                    monochromatic_color_magenta_green=_parse_numeric(s=data.monochromatic_color_magenta_green),
+                    name=name,
+                )
+        except IntegrityError:
+            raise RecipeSettingsConflictError(recipe_id=recipe.pk)
+    else:
+        name = data.name if data.name else recipe.name
+        if name != recipe.name:
+            recipe.set_name(name=name)
 
     events.publish_event(
         event_type=events.RECIPE_UPDATED,

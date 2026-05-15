@@ -189,7 +189,7 @@ class TestRecipeDetailEditButton:
         link = self._edit_link(client, recipe)
         assert link["href"] == f"/recipes/{recipe.pk}/edit/"
 
-    def test_edit_button_absent_when_recipe_has_images(self, client):
+    def test_edit_button_present_when_recipe_has_images(self, client):
         recipe = FujifilmRecipeFactory()
         ImageFactory(fujifilm_recipe=recipe)
-        assert self._edit_link(client, recipe) is None
+        assert self._edit_link(client, recipe) is not None
