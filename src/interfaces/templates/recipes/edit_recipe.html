@@ -297,7 +297,7 @@
 
     {% if not is_settings_editable %}
     <div class="form-notice-banner">
-      This recipe has photos associated with it. Camera settings cannot be changed, but you can still update the name.
+      Camera settings are locked — this recipe has photos. You can still edit the name, or <a href="{% url 'create-recipe-version' recipe_id=recipe.id %}" style="color:inherit;">create a new version</a>.
     </div>
     {% endif %}
 

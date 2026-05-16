@@ -63,6 +63,73 @@ Creating a new version means creating a new `FujifilmRecipe` row — never mutat
 
 ---
 
+## Diagrams
+
+### Data model
+
+```mermaid
+erDiagram
+    RecipeGroup {
+        int id PK
+        string group_type "VERSION_LINE | FAMILY"
+        string name "optional"
+    }
+    RecipeGroupMember {
+        int id PK
+        int group_id FK
+        int recipe_id FK
+        string group_type "denormalised from RecipeGroup"
+        int position "null for FAMILY memberships"
+        datetime added_at
+    }
+    FujifilmRecipe {
+        int id PK
+        string film_simulation
+        string name
+        string other_settings "16 additional camera settings fields"
+    }
+    Image {
+        int id PK
+        int fujifilm_recipe_id FK
+    }
+
+    RecipeGroup ||--o{ RecipeGroupMember : "has members"
+    FujifilmRecipe ||--o{ RecipeGroupMember : "belongs to"
+    FujifilmRecipe ||--o{ Image : "shot with (PROTECT)"
+```
+
+### Create-version flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as CreateRecipeVersion view
+    participant UC as create_recipe_version usecase
+    participant Op as get_or_create_recipe_from_data
+    participant VL as add_recipe_to_version_line
+    participant DB
+
+    User->>View: GET /recipes/<id>/create-version/
+    View->>DB: Load source recipe + version line membership
+    DB-->>View: recipe, group_id
+    View-->>User: Form pre-populated with source recipe settings
+
+    User->>View: POST (tweaked settings)
+    View->>UC: create_recipe_version(data, group_id)
+    UC->>Op: get_or_create_recipe_from_data(data, group_id)
+    Op->>DB: FujifilmRecipe.get_or_create(settings)
+    DB-->>Op: (new_recipe, created=True)
+    Op->>VL: add_recipe_to_version_line(new_recipe, group_id)
+    VL->>DB: Append RecipeGroupMember at position = max + 1
+    Op-->>UC: (new_recipe, created=True)
+    UC-->>View: new_recipe
+    View-->>User: Redirect to new recipe detail page
+
+    note over DB: Source recipe and its images are untouched.<br/>Only a new FujifilmRecipe row is created.
+```
+
+---
+
 ## Consequences
 
 - `FujifilmRecipe` rows remain immutable once images are associated with them. "Editing" a recipe always produces a new row.

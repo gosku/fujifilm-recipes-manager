@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 from src.application.usecases.recipes import update_recipe_manually as update_recipe_manually_uc
 from src.data import models
@@ -242,3 +243,20 @@ class TestEditRecipeViewHasImages:
         assert response.status_code == 200
         errors = response.context["form"].non_field_errors()
         assert any("unexpected error" in e.lower() for e in errors)
+
+
+@pytest.mark.django_db
+class TestEditRecipeNoticeBanner:
+    def _create_version_link(self, client, recipe):
+        response = client.get(_url(recipe.pk))
+        soup = BeautifulSoup(response.content, "html.parser")
+        return soup.find("a", href=f"/recipes/{recipe.pk}/create-version/")
+
+    def test_notice_banner_absent_when_recipe_has_no_images(self, client) -> None:
+        recipe = FujifilmRecipeFactory()
+        assert self._create_version_link(client, recipe) is None
+
+    def test_notice_banner_contains_create_version_link_when_recipe_has_images(self, client) -> None:
+        recipe = FujifilmRecipeFactory()
+        ImageFactory(fujifilm_recipe=recipe)
+        assert self._create_version_link(client, recipe) is not None
