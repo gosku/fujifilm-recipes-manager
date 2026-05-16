@@ -4,6 +4,8 @@ import attrs
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
+from django.db.models import aggregates
+from django.utils import timezone
 from src.data import models
 from src.domain.images import dataclasses as image_dataclasses
 from src.domain.images import events
@@ -43,6 +45,70 @@ def _settings_values_equal(field: str, a: object, b: object) -> bool:
         except Exception:  # noqa: BLE001 — fall back to direct comparison on unexpected values
             pass
     return a == b
+
+
+@attrs.frozen
+class VersionLineGroupNotFoundError(Exception):
+    """
+    Raised when no VERSION_LINE group with the given ID exists.
+    """
+
+    group_id: int
+
+
+@transaction.atomic
+def add_recipe_to_version_line(
+    *,
+    recipe: models.FujifilmRecipe,
+    group_id: int | None,
+) -> models.RecipeGroupMember:
+    """
+    Add a newly created recipe to a version line group.
+
+    If *group_id* is None, creates a new VERSION_LINE group and adds the
+    recipe as position=1. Otherwise appends the recipe to the given group at
+    max(position)+1.
+
+    :raises VersionLineGroupNotFoundError: If no VERSION_LINE group with
+        *group_id* exists.
+    """
+    now = timezone.now()
+
+    if group_id is None:
+        group = models.RecipeGroup.new_version_line()
+        member = models.RecipeGroupMember.new(
+            group=group,
+            recipe_id=recipe.pk,
+            position=1,
+            added_at=now,
+        )
+    else:
+        try:
+            group = models.RecipeGroup.objects.get(
+                pk=group_id,
+                group_type=models.RecipeGroup.GROUP_TYPE_VERSION_LINE,
+            )
+        except models.RecipeGroup.DoesNotExist:
+            raise VersionLineGroupNotFoundError(group_id=group_id)
+
+        result = models.RecipeGroupMember.objects.filter(group=group).aggregate(
+            max_position=aggregates.Max("position")
+        )
+        next_position = (result["max_position"] or 0) + 1
+        member = models.RecipeGroupMember.new(
+            group=group,
+            recipe_id=recipe.pk,
+            position=next_position,
+            added_at=now,
+        )
+
+    events.publish_event(
+        event_type=events.RECIPE_ADDED_TO_VERSION_LINE,
+        recipe_id=recipe.pk,
+        group_id=group.pk,
+        position=member.position,
+    )
+    return member
 
 
 def get_or_create_recipe_from_data(
