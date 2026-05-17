@@ -16,7 +16,7 @@
          onkeydown="if(event.key==='Escape'){event.stopPropagation();var p=this.closest('form');p.querySelector('.recipe-name-form-state').style.display='none';p.querySelector('.recipe-title-input').style.display='none';p.querySelector('.recipe-title-display').style.display='';p.querySelector('.recipe-name-btn-state').style.display='flex';}"
          {% if show_form %} autofocus{% else %} style="display:none"{% endif %}>
 
-  {# "Edit recipe name" button — hidden while editing #}
+  {# Rename button — hidden while editing #}
   <div class="recipe-name-btn-state"{% if show_form %} style="display:none"{% endif %}>
     <button type="button" class="name-recipe-btn"
             onclick="var p=this.closest('form');
@@ -25,7 +25,11 @@
                      p.querySelector('.recipe-name-btn-state').style.display='none';
                      p.querySelector('.recipe-name-form-state').style.display='flex';
                      p.querySelector('.recipe-title-input').focus();">
-      Edit recipe name
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Rename
     </button>
   </div>
 
