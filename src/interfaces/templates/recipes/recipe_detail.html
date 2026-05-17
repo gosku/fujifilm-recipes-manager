@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% if recipe.name %}{{ recipe.name }}{% else %}{{ recipe.film_simulation }} #{{ recipe.id }}{% endif %}</title>
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <script src="/static/js/multi-select.js"></script>
   <link rel="stylesheet" href="/static/css/brand.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -264,6 +265,109 @@
       color: #888;
       font-style: italic;
     }
+
+    .recipe-card .ms-checkbox {
+      position: absolute;
+      top: 0.6rem;
+      left: 0.6rem;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s, background 0.12s, border-color 0.12s;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .recipe-card:hover .ms-checkbox,
+    #recipe-gallery-results.ms-active .ms-checkbox {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .recipe-card .ms-checkbox:hover {
+      border-color: var(--color-accent);
+      background: rgba(239, 68, 68, 0.35);
+    }
+
+    .recipe-card .ms-check {
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+
+    .recipe-card.ms-selected .ms-checkbox {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .recipe-card.ms-selected .ms-check {
+      opacity: 1;
+    }
+
+    .recipe-card.ms-selected::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px solid var(--color-accent);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .delete-confirm__checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #444;
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+
+    .delete-confirm__checkbox-label input[type="checkbox"] {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      accent-color: var(--color-accent);
+    }
+
+    .delete-confirm__actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .delete-confirm__no-btn {
+      padding: 0.5rem 1.25rem;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .delete-confirm__no-btn:hover { background: #f0f0f0; }
+
+    .delete-confirm__yes-btn {
+      padding: 0.5rem 1.25rem;
+      background: var(--color-accent);
+      border: none;
+      border-radius: 5px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .delete-confirm__yes-btn:hover { background: var(--color-accent-dark); }
 
     .header-actions {
       display: flex;
@@ -554,6 +658,23 @@
 
   <main class="main">
     <div class="gallery-header">
+      <div class="ms-toolbar" id="ms-toolbar" hidden>
+        <span class="ms-count">0 selected</span>
+        <button class="ms-cancel-btn" type="button">Cancel</button>
+        <div class="ms-actions-wrap">
+          <button class="ms-actions-btn" id="ms-actions-btn" type="button">
+            Actions
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="ms-actions-dropdown" id="ms-actions-dropdown" hidden>
+            <button class="ms-actions-option" id="ms-delete-recipes-btn" type="button">
+              Delete recipes
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="header-actions">
         <a href="{% url 'create-recipe' %}" class="create-recipe-link-btn">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -619,6 +740,33 @@
         </form>
 
         <div id="import-result"></div>
+      </div>
+    </div>
+
+    <div class="import-overlay" id="delete-recipes-overlay" hidden>
+      <div class="import-modal" role="dialog" aria-modal="true" aria-labelledby="delete-recipes-modal-title">
+        <button class="import-modal__close" id="close-delete-recipes-btn" aria-label="Close">&#x2715;</button>
+        <div id="delete-recipes-modal-body">
+          <h2 id="delete-recipes-modal-title">Delete Recipes</h2>
+          <p class="import-modal__desc">
+            Are you sure you want to delete these <strong id="delete-recipes-count">0</strong> recipes?
+          </p>
+          <form id="delete-recipes-form"
+                hx-post="{% url 'recipes-delete' %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#delete-recipes-modal-body"
+                hx-swap="innerHTML">
+            <div id="delete-recipes-pks-container"></div>
+            <label class="delete-confirm__checkbox-label">
+              <input type="checkbox" name="remove_recipe_card_file">
+              Also delete recipe card files generated for the recipes
+            </label>
+            <div class="delete-confirm__actions">
+              <button type="button" class="delete-confirm__no-btn" id="delete-recipes-no-btn">No</button>
+              <button type="submit" class="delete-confirm__yes-btn">Yes, delete</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -701,6 +849,75 @@
       submitBtn.hidden = false;
     });
   })();
+</script>
+
+<script>
+  const recipeMultiSelect = new MultiSelectController({
+    containerSelector: '#recipe-gallery-results',
+    cardSelector: '.recipe-card',
+    toolbarSelector: '#ms-toolbar',
+  });
+
+  (function () {
+    var actionsBtn = document.getElementById('ms-actions-btn');
+    var actionsDropdown = document.getElementById('ms-actions-dropdown');
+    actionsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      actionsDropdown.hidden = !actionsDropdown.hidden;
+    });
+    document.addEventListener('click', function () {
+      actionsDropdown.hidden = true;
+    });
+  }());
+
+  (function () {
+    var deleteOverlay  = document.getElementById('delete-recipes-overlay');
+    var closeDeleteBtn = document.getElementById('close-delete-recipes-btn');
+    var _allSucceeded  = false;
+    var _confirmHTML   = document.getElementById('delete-recipes-modal-body').innerHTML;
+
+    function handleClose() {
+      deleteOverlay.hidden = true;
+      if (_allSucceeded) {
+        _allSucceeded = false;
+        location.reload();
+      }
+    }
+
+    function openDeleteModal() {
+      _allSucceeded = false;
+      var body = document.getElementById('delete-recipes-modal-body');
+      body.innerHTML = _confirmHTML;
+      htmx.process(body);
+      var pks = recipeMultiSelect.getSelectedPks();
+      document.getElementById('delete-recipes-count').textContent = pks.length;
+      var container = document.getElementById('delete-recipes-pks-container');
+      pks.forEach(function (pk) {
+        var input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'recipe_ids';
+        input.value = pk;
+        container.appendChild(input);
+      });
+      deleteOverlay.hidden = false;
+      document.getElementById('ms-actions-dropdown').hidden = true;
+    }
+
+    document.getElementById('ms-delete-recipes-btn').addEventListener('click', openDeleteModal);
+    closeDeleteBtn.addEventListener('click', handleClose);
+
+    deleteOverlay.addEventListener('click', function (e) {
+      if (e.target === deleteOverlay || e.target.closest('#delete-recipes-no-btn')) {
+        handleClose();
+      }
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail.target.id !== 'delete-recipes-modal-body') return;
+      var resultEl = e.detail.target.querySelector('[data-all-succeeded]');
+      _allSucceeded = !!(resultEl && resultEl.dataset.allSucceeded === 'true');
+    });
+  }());
 </script>
 
 <div id="recipe-detail-overlay">
